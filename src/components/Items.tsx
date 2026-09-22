@@ -1,9 +1,13 @@
-import { useState } from 'react'
-import { items } from '../data/store'
+import { useEffect, useState } from 'react'
 import type { Item } from '../types'
+
+const API_URL = 'http://localhost:5000/api'
 
 function Items() {
   const [showForm, setShowForm] = useState(false)
+  const [itemList, setItemList] = useState<Item[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   const [itemName, setItemName] = useState('')
   const [category, setCategory] = useState('')
@@ -14,7 +18,28 @@ function Items() {
   const [person, setPerson] = useState('')
   const [notes, setNotes] = useState('')
 
-  const [itemList, setItemList] = useState<Item[]>(items)
+  // Get items from API
+  const loadItems = async () => {
+    try {
+      setLoading(true)
+
+      const response = await fetch(`${API_URL}/items`)
+      const result = await response.json()
+
+      if (result.success) {
+        setItemList(result.data)
+      }
+    } catch (error) {
+      console.error('Items load error:', error)
+      alert('Items load होत नाहीत. API चालू आहे का ते check करा.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadItems()
+  }, [])
 
   const resetForm = () => {
     setItemName('')
@@ -27,32 +52,61 @@ function Items() {
     setNotes('')
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Save item through API
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const newItem: Item = {
-      id: Date.now(),
-      name: itemName,
-      category,
-      quantity: Number(quantity),
-      price: Number(price),
-      purchaseDate,
-      usedDate,
-      person,
-      notes,
+    try {
+      setSaving(true)
+
+      const newItem = {
+        name: itemName,
+        category,
+        quantity: Number(quantity),
+        price: Number(price),
+        purchaseDate,
+        usedDate,
+        person,
+        notes,
+      }
+
+      const response = await fetch(`${API_URL}/items`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newItem),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Item save failed')
+      }
+
+      setItemList((previousItems) => [
+        ...previousItems,
+        result.data,
+      ])
+
+      resetForm()
+      setShowForm(false)
+
+      alert('वस्तू successfully save झाली!')
+
+    } catch (error) {
+      console.error('Item save error:', error)
+      alert('वस्तू save झाली नाही. API check करा.')
+    } finally {
+      setSaving(false)
     }
-
-    items.push(newItem)
-    setItemList([...items])
-
-    resetForm()
-    setShowForm(false)
   }
 
   return (
     <div className="items-page">
 
       <div className="items-header">
+
         <div>
           <h2>📦 घरातील वस्तू</h2>
           <p>घरातील वस्तूंची नोंद आणि वापराचा हिशोब</p>
@@ -64,6 +118,7 @@ function Items() {
         >
           + वस्तू जोडा
         </button>
+
       </div>
 
       {/* Item List */}
@@ -76,7 +131,12 @@ function Items() {
           </div>
         </div>
 
-        {itemList.length === 0 ? (
+        {loading ? (
+          <div className="empty-activity">
+            <div>⏳</div>
+            <p>वस्तू load होत आहेत...</p>
+          </div>
+        ) : itemList.length === 0 ? (
           <div className="empty-activity">
             <div>📦</div>
             <p>अजून कोणतीही वस्तू जोडलेली नाही.</p>
@@ -91,6 +151,7 @@ function Items() {
               <div className="item-row" key={item.id}>
 
                 <div className="item-main">
+
                   <div className="item-icon">
                     📦
                   </div>
@@ -99,6 +160,7 @@ function Items() {
                     <strong>{item.name}</strong>
                     <span>{item.category}</span>
                   </div>
+
                 </div>
 
                 <div className="item-detail">
@@ -117,15 +179,18 @@ function Items() {
                 </div>
 
                 <div className="item-detail">
-                  <span>तारीख</span>
+                  <span>आणल्याची तारीख</span>
                   <strong>{item.purchaseDate}</strong>
                 </div>
+
                 <div className="item-detail">
-  <span>वापरायला काढले</span>
-  <strong>
-    {item.usedDate ? item.usedDate : 'अजून वापरले नाही'}
-  </strong>
-</div>
+                  <span>वापरायला काढले</span>
+                  <strong>
+                    {item.usedDate
+                      ? item.usedDate
+                      : 'अजून वापरले नाही'}
+                  </strong>
+                </div>
 
               </div>
             ))}
@@ -142,6 +207,7 @@ function Items() {
           <div className="item-form">
 
             <div className="form-header">
+
               <h2>📦 नवीन वस्तू जोडा</h2>
 
               <button
@@ -150,6 +216,7 @@ function Items() {
               >
                 ✕
               </button>
+
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -272,6 +339,7 @@ function Items() {
                     resetForm()
                     setShowForm(false)
                   }}
+                  disabled={saving}
                 >
                   Cancel
                 </button>
@@ -279,8 +347,9 @@ function Items() {
                 <button
                   type="submit"
                   className="save-btn"
+                  disabled={saving}
                 >
-                  💾 Save करा
+                  {saving ? '⏳ Saving...' : '💾 Save करा'}
                 </button>
 
               </div>
