@@ -184,6 +184,7 @@ app.post("/api/items", async (req, res) => {
 
     const memberId = await getMemberId(person);
 
+
     const transaction = await db.orm.public.ItemTransaction.create({
       itemId: itemMaster.id,
       quantity: Number(quantity ?? 1),
@@ -549,7 +550,6 @@ app.post("/api/loans", async (req, res) => {
       !name ||
       !principalAmount ||
       !tenureMonths ||
-      !emiAmount ||
       !startDate
     ) {
       return res.status(400).json({
@@ -558,14 +558,28 @@ app.post("/api/loans", async (req, res) => {
       });
     }
 
+    const principal = Number(principalAmount);
+    const annualRate = Number(interestRate ?? 0);
+    const tenure = Number(tenureMonths);
+
+    let calculatedEMI = 0;
+
+    if (annualRate <= 0) {
+      calculatedEMI = principal / tenure;
+    } else {
+      const monthlyRate = annualRate / 12 / 100;
+      const factor = Math.pow(1 + monthlyRate, tenure);
+      calculatedEMI = principal * monthlyRate * factor / (factor - 1);
+    }
+
     const memberId = await getMemberId(person);
 
     const loan = await db.orm.public.Loan.create({
       name,
-      principalAmount: Number(principalAmount),
-      interestRate: Number(interestRate ?? 0),
-      tenureMonths: Number(tenureMonths),
-      emiAmount: Number(emiAmount),
+      principalAmount: principal,
+      interestRate: annualRate,
+      tenureMonths: tenure,
+      emiAmount: calculatedEMI,
       startDate: toInstant(startDate),
       endDate: endDate ? toInstant(endDate) : null,
       memberId,
@@ -591,6 +605,68 @@ app.post("/api/loans", async (req, res) => {
 /* =========================
    LOAN PAYMENTS
 ========================= */
+
+app.delete("/api/loan-payments/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment id is required",
+      });
+    }
+
+    await db.orm.public.LoanPayment.where({ id }).delete();
+
+    res.json({
+      success: true,
+      message: "Loan payment deleted successfully",
+    });
+  } catch (error) {
+    console.error("DELETE /api/loan-payments error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete loan payment",
+    });
+  }
+});
+
+app.delete("/api/loans/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid loan id",
+      })
+    }
+
+    const payments = await db.orm.public.LoanPayment
+      .where({ loanId: id })
+      .all()
+
+    for (const payment of payments) {
+      await db.orm.public.LoanPayment.where({ id: Number(payment.id) }).delete()
+    }
+
+    await db.orm.public.Loan.where({ id }).delete()
+
+    res.json({
+      success: true,
+      message: "Loan deleted successfully",
+    })
+  } catch (error) {
+    console.error("DELETE /api/loans/:id error:", error)
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete loan",
+    })
+  }
+})
 
 app.get("/api/loan-payments", async (_req, res) => {
   try {
@@ -699,6 +775,10 @@ app.get("/api/dashboard", async (_req, res) => {
       .filter((bill) => isCurrentMonth(bill.dueDate))
       .reduce((sum, bill) => sum + Number(bill.amount), 0);
 
+    const pendingBills = bills
+      .filter((bill) => bill.status !== "PAID")
+      .reduce((sum, bill) => sum + Number(bill.amount), 0);
+
     const monthlyIncome = incomes
       .filter((income) => isCurrentMonth(income.incomeDate))
       .reduce((sum, income) => sum + Number(income.amount), 0);
@@ -772,6 +852,24 @@ app.get("/api/dashboard", async (_req, res) => {
             (person) => Number(person.id) === Number(income.memberId)
           )?.name ?? "",
       })),
+
+      ...loanPayments.map((payment) => {
+        const loan = loans.find(
+          (item) => Number(item.id) === Number(payment.loanId)
+        );
+
+        return {
+          type: "LOAN_PAYMENT",
+          date: payment.paymentDate,
+          amount: Number(payment.amount),
+          id: payment.id,
+          itemName: loan?.name ?? "कर्ज EMI",
+          memberName:
+            members.find(
+              (person) => Number(person.id) === Number(loan?.memberId)
+            )?.name ?? "",
+        };
+      }),
     ]
       .sort(
         (a, b) =>
@@ -786,6 +884,7 @@ app.get("/api/dashboard", async (_req, res) => {
         monthlyItemSpend,
         monthlyExpenses,
         monthlyBills,
+        pendingBills,
         monthlyIncome,
         monthlyLoanPayments,
         totalMonthlyOutflow,

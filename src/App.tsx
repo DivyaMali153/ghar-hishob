@@ -5,8 +5,10 @@ import Dashboard from './components/Dashboard'
 import Items from './components/Items'
 import Expenses from './components/Expenses'
 import Bills from './components/Bills'
+import Income from './components/Income'
+import Loans from './components/Loans'
 
-type Page = 'dashboard' | 'items' | 'expenses' | 'bills'
+type Page = 'dashboard' | 'items' | 'expenses' | 'bills' | 'income' | 'loans'
 
 function App() {
   const [activePage, setActivePage] = useState<Page>('dashboard')
@@ -25,6 +27,12 @@ function App() {
 
       case 'bills':
         return <Bills />
+
+      case 'income':
+        return <Income />
+
+      case 'loans':
+        return <Loans />
 
       default:
         return <Dashboard />
@@ -140,6 +148,30 @@ function App() {
             बिले
           </button>
 
+          <button
+            className={
+              activePage === 'income'
+                ? 'nav-item active'
+                : 'nav-item'
+            }
+            onClick={() => setActivePage('income')}
+          >
+            <span>💵</span>
+            उत्पन्न
+          </button>
+
+          <button
+            className={
+              activePage === 'loans'
+                ? 'nav-item active'
+                : 'nav-item'
+            }
+            onClick={() => setActivePage('loans')}
+          >
+            <span>🏦</span>
+            कर्ज
+          </button>
+
         </nav>
 
         <div className="sidebar-footer">
@@ -160,6 +192,8 @@ function App() {
               {activePage === 'items' && 'वस्तू'}
               {activePage === 'expenses' && 'खर्च'}
               {activePage === 'bills' && 'बिले'}
+              {activePage === 'income' && 'उत्पन्न'}
+              {activePage === 'loans' && 'कर्ज'}
             </span>
           </div>
 

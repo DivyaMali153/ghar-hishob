@@ -4,6 +4,7 @@ type DashboardData = {
   monthlyItemSpend: number;
   monthlyExpenses: number;
   monthlyBills: number;
+  pendingBills: number;
   monthlyIncome: number;
   monthlyLoanPayments: number;
   totalMonthlyOutflow: number;
@@ -39,6 +40,7 @@ function Dashboard() {
     monthlyItemSpend: 0,
     monthlyExpenses: 0,
     monthlyBills: 0,
+    pendingBills: 0,
     monthlyIncome: 0,
     monthlyLoanPayments: 0,
     totalMonthlyOutflow: 0,
@@ -63,6 +65,8 @@ function Dashboard() {
         return "🧾 बिल";
       case "INCOME":
         return "💵 उत्पन्न";
+      case "LOAN_PAYMENT":
+        return "🏦 कर्ज EMI";
       default:
         return "📋 नोंद";
     }
@@ -121,7 +125,7 @@ function Dashboard() {
           <div>
             <p>Pending Bills</p>
             <h3>
-              {formatAmount(dashboard.monthlyBills)}
+              {formatAmount(dashboard.pendingBills)}
             </h3>
           </div>
         </div>
@@ -167,6 +171,13 @@ function Dashboard() {
         <div className="monthly-grid">
 
           <div>
+            <span>एकूण उत्पन्न</span>
+            <strong>
+              {formatAmount(dashboard.monthlyIncome)}
+            </strong>
+          </div>
+
+          <div>
             <span>एकूण खर्च</span>
             <strong>
               {formatAmount(dashboard.totalMonthlyOutflow)}
@@ -184,6 +195,13 @@ function Dashboard() {
             <span>वस्तूंवर खर्च</span>
             <strong>
               {formatAmount(dashboard.monthlyItemSpend)}
+            </strong>
+          </div>
+
+          <div>
+            <span>Home Loan EMI</span>
+            <strong>
+              {formatAmount(dashboard.monthlyLoanPayments)}
             </strong>
           </div>
 
