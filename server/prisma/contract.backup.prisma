@@ -1,0 +1,178 @@
+// use prisma-8
+
+model Item {
+  id           Int      @id @default(autoincrement())
+  name         String
+  category     String?
+  quantity     Float    @default(1)
+  price        Float    @default(0)
+  purchaseDate DateTime
+  usedDate     DateTime?
+  person       String?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  @@map("items")
+}
+
+model Member {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  itemTransactions ItemTransaction[] @relation("ItemTransactionMember")
+  expenses         Expense[]         @relation("ExpenseMember")
+  bills            Bill[]            @relation("BillMember")
+  incomes          Income[]          @relation("IncomeMember")
+  loans            Loan[]            @relation("LoanMember")
+
+  @@map("members")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  type      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  itemMasters ItemMaster[] @relation("ItemMasterCategory")
+  expenses    Expense[]    @relation("ExpenseCategory")
+  bills       Bill[]       @relation("BillCategory")
+
+  @@unique([name, type])
+  @@map("categories")
+}
+
+model ItemMaster {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  categoryId Int?
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  category    Category?         @relation("ItemMasterCategory", fields: [categoryId], references: [id])
+  transactions ItemTransaction[] @relation("ItemMasterTransaction")
+
+  @@index([categoryId])
+  @@index([active])
+  @@map("item_master")
+}
+
+model ItemTransaction {
+  id           Int      @id @default(autoincrement())
+  itemId       Int
+  quantity     Float    @default(1)
+  price        Float    @default(0)
+  purchaseDate DateTime
+  usedDate     DateTime?
+  memberId     Int?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  item   ItemMaster @relation("ItemMasterTransaction", fields: [itemId], references: [id])
+  member Member?    @relation("ItemTransactionMember", fields: [memberId], references: [id])
+
+  @@index([itemId])
+  @@index([memberId])
+  @@index([purchaseDate])
+  @@map("item_transactions")
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  categoryId  Int?
+  amount      Float
+  expenseDate DateTime
+  memberId    Int?
+  description String
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  category Category? @relation("ExpenseCategory", fields: [categoryId], references: [id])
+  member   Member?   @relation("ExpenseMember", fields: [memberId], references: [id])
+
+  @@index([categoryId])
+  @@index([memberId])
+  @@index([expenseDate])
+  @@map("expenses")
+}
+
+model Bill {
+  id         Int      @id @default(autoincrement())
+  name       String
+  categoryId Int?
+  amount     Float
+  dueDate    DateTime
+  paidDate   DateTime?
+  status     String   @default("PENDING")
+  memberId   Int?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  category Category? @relation("BillCategory", fields: [categoryId], references: [id])
+  member   Member?   @relation("BillMember", fields: [memberId], references: [id])
+
+  @@index([categoryId])
+  @@index([memberId])
+  @@index([dueDate])
+  @@index([status])
+  @@map("bills")
+}
+
+model Income {
+  id         Int      @id @default(autoincrement())
+  source     String
+  amount     Float
+  incomeDate DateTime
+  memberId   Int?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  member Member? @relation("IncomeMember", fields: [memberId], references: [id])
+
+  @@index([memberId])
+  @@index([incomeDate])
+  @@map("income")
+}
+
+model Loan {
+  id              Int      @id @default(autoincrement())
+  name            String
+  principalAmount Float
+  interestRate    Float    @default(0)
+  tenureMonths    Int
+  emiAmount       Float
+  startDate       DateTime
+  endDate         DateTime?
+  memberId        Int?
+  status          String   @default("ACTIVE")
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  member   Member?       @relation("LoanMember", fields: [memberId], references: [id])
+  payments LoanPayment[] @relation("LoanPaymentLoan")
+
+  @@index([memberId])
+  @@index([status])
+  @@map("loans")
+}
+
+model LoanPayment {
+  id              Int      @id @default(autoincrement())
+  loanId          Int
+  amount          Float
+  paymentDate     DateTime
+  principalAmount Float    @default(0)
+  interestAmount  Float    @default(0)
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  loan Loan @relation("LoanPaymentLoan", fields: [loanId], references: [id])
+
+  @@index([loanId])
+  @@index([paymentDate])
+  @@map("loan_payments")
+}
+

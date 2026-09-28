@@ -1,0 +1,4081 @@
+===== PACKAGE.JSON =====
+{
+  "name": "ghar-hisab",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.10.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.6",
+    "globals": "^17.12.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.69.0",
+    "vite": "^8.3.0"
+  }
+}
+===== DASHBOARD =====
+import { useEffect, useState } from "react";
+
+type DashboardData = {
+  monthlyItemSpend: number;
+  monthlyExpenses: number;
+  monthlyBills: number;
+  pendingBills: number;
+  monthlyIncome: number;
+  monthlyLoanPayments: number;
+  totalMonthlyOutflow: number;
+  activeLoans: number;
+  totalLoans: number;
+  recentActivity: {
+    type: string;
+    date: string;
+    amount: number;
+    id: number;
+    itemName?: string;
+    memberName?: string;
+  }[];
+};
+
+function Dashboard() {
+  const [data, setData] = useState<DashboardData | null>(null);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/dashboard")
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success) {
+          setData(result.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Dashboard API error:", error);
+      });
+  }, []);
+
+  const dashboard = data ?? {
+    monthlyItemSpend: 0,
+    monthlyExpenses: 0,
+    monthlyBills: 0,
+    pendingBills: 0,
+    monthlyIncome: 0,
+    monthlyLoanPayments: 0,
+    totalMonthlyOutflow: 0,
+    activeLoans: 0,
+    totalLoans: 0,
+    recentActivity: [],
+  };
+
+  const formatAmount = (amount: number) =>
+    `₹ ${amount.toLocaleString("en-IN")}`;
+
+  const formatDate = (date: string) =>
+    date.substring(0, 10);
+
+  const getActivityLabel = (type: string) => {
+    switch (type) {
+      case "ITEM":
+        return "📦 वस्तू";
+      case "EXPENSE":
+        return "💰 खर्च";
+      case "BILL":
+        return "🧾 बिल";
+      case "INCOME":
+        return "💵 उत्पन्न";
+      case "LOAN_PAYMENT":
+        return "🏦 कर्ज EMI";
+      default:
+        return "📋 नोंद";
+    }
+  };
+
+  return (
+    <div className="dashboard-page">
+
+      {/* Header */}
+      <div className="dashboard-header">
+        <div>
+          <h2>🏠 घरहिशोब</h2>
+          <p>घरातील खर्च, वस्तू आणि बिलांचा संपूर्ण हिशोब</p>
+        </div>
+
+        <div className="today-date">
+          📅 आज
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="dashboard-cards">
+
+        <div className="dashboard-card">
+          <div className="card-icon">💰</div>
+          <div>
+            <p>या महिन्याचा खर्च</p>
+            <h3>
+              {formatAmount(dashboard.totalMonthlyOutflow)}
+            </h3>
+          </div>
+        </div>
+
+        <div className="dashboard-card">
+          <div className="card-icon">📦</div>
+          <div>
+            <p>नोंद केलेल्या वस्तू</p>
+            <h3>
+              {dashboard.recentActivity.filter(
+                (item) => item.type === "ITEM"
+              ).length}
+            </h3>
+          </div>
+        </div>
+
+        <div className="dashboard-card">
+          <div className="card-icon">🔴</div>
+          <div>
+            <p>संपलेल्या वस्तू</p>
+            <h3>0</h3>
+          </div>
+        </div>
+
+        <div className="dashboard-card">
+          <div className="card-icon">🧾</div>
+          <div>
+            <p>Pending Bills</p>
+            <h3>
+              {formatAmount(dashboard.pendingBills)}
+            </h3>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Quick Actions */}
+      <section className="dashboard-section">
+
+        <h3>⚡ जलद नोंद</h3>
+
+        <div className="dashboard-actions">
+
+          <button>
+            📦
+            <span>वस्तू जोडा</span>
+          </button>
+
+          <button>
+            💰
+            <span>खर्च जोडा</span>
+          </button>
+
+          <button>
+            🧾
+            <span>बिल जोडा</span>
+          </button>
+
+        </div>
+
+      </section>
+
+      {/* Monthly Summary */}
+      <section className="dashboard-section monthly-summary">
+
+        <div className="section-title">
+          <div>
+            <h3>📊 या महिन्याचा हिशोब</h3>
+            <p>September 2026</p>
+          </div>
+        </div>
+
+        <div className="monthly-grid">
+
+          <div>
+            <span>एकूण उत्पन्न</span>
+            <strong>
+              {formatAmount(dashboard.monthlyIncome)}
+            </strong>
+          </div>
+
+          <div>
+            <span>एकूण खर्च</span>
+            <strong>
+              {formatAmount(dashboard.totalMonthlyOutflow)}
+            </strong>
+          </div>
+
+          <div>
+            <span>एकूण बिले</span>
+            <strong>
+              {formatAmount(dashboard.monthlyBills)}
+            </strong>
+          </div>
+
+          <div>
+            <span>वस्तूंवर खर्च</span>
+            <strong>
+              {formatAmount(dashboard.monthlyItemSpend)}
+            </strong>
+          </div>
+
+          <div>
+            <span>Home Loan EMI</span>
+            <strong>
+              {formatAmount(dashboard.monthlyLoanPayments)}
+            </strong>
+          </div>
+
+        </div>
+
+      </section>
+
+      {/* Recent Activity */}
+      <section className="dashboard-section">
+
+        <div className="section-title">
+          <div>
+            <h3>🕐 अलीकडील नोंदी</h3>
+            <p>तुमच्या घरातील अलीकडील व्यवहार</p>
+          </div>
+        </div>
+
+        {dashboard.recentActivity.length === 0 ? (
+          <div className="empty-activity">
+            <div>📋</div>
+            <p>अजून कोणतीही नोंद केलेली नाही.</p>
+            <small>
+              वस्तू, खर्च किंवा बिलाची नोंद केल्यावर ती येथे दिसेल.
+            </small>
+          </div>
+        ) : (
+          <div className="recent-activity-list">
+            {dashboard.recentActivity.map((activity) => (
+              <div
+                className="recent-activity-item"
+                key={`${activity.type}-${activity.id}`}
+              >
+                <div className="recent-activity-info">
+                  <strong>
+                    {activity.itemName || getActivityLabel(activity.type)}
+                  </strong>
+                  <small>
+                    {formatDate(activity.date)}
+                    {activity.memberName ? ` • ${activity.memberName}` : ""}
+                  </small>
+                </div>
+
+                <strong className="recent-activity-amount">
+                  {formatAmount(activity.amount)}
+                </strong>
+              </div>
+            ))}
+          </div>
+        )}
+
+      </section>
+
+      <footer className="dashboard-footer">
+        Developed by <strong>Divya</strong> 
+      </footer>
+
+    </div>
+  );
+}
+
+export default Dashboard;
+===== EXPENSES =====
+import { useEffect, useState } from 'react'
+
+type Expense = {
+  id: number
+  description: string
+  amount: number
+  expenseDate: string
+  memberName?: string
+  categoryName?: string
+  paymentMethod?: string
+  notes?: string
+}
+
+function Expenses() {
+  const [showForm, setShowForm] = useState(false)
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  const [description, setDescription] = useState('')
+  const [category, setCategory] = useState('')
+  const [amount, setAmount] = useState('')
+  const [expenseDate, setExpenseDate] = useState(
+    new Date().toISOString().slice(0, 10)
+  )
+  const [member, setMember] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [notes, setNotes] = useState('')
+
+  const loadExpenses = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/expenses')
+      const result = await response.json()
+
+      if (result.success) {
+        setExpenses(result.data || [])
+      }
+    } catch (error) {
+      console.error('Failed to load expenses:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadExpenses()
+  }, [])
+
+  const resetForm = () => {
+    setDescription('')
+    setCategory('')
+    setAmount('')
+    setExpenseDate(new Date().toISOString().slice(0, 10))
+    setMember('')
+    setPaymentMethod('')
+    setNotes('')
+  }
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (!description || !amount || !expenseDate || !member) {
+      alert('कृपया आवश्यक माहिती भरा.')
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      const response = await fetch('http://localhost:5000/api/expenses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          description,
+          amount: Number(amount),
+          expenseDate,
+          person: member,
+          category: category || null,
+          notes: notes || null,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Expense save failed')
+      }
+
+      resetForm()
+      setShowForm(false)
+      await loadExpenses()
+    } catch (error) {
+      console.error('Failed to save expense:', error)
+      alert('खर्च Save करता आला नाही.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="expenses-page">
+
+      <div className="items-header">
+        <div>
+          <h2>💰 घरातील खर्च</h2>
+          <p>दररोजच्या खर्चाची नोंद आणि महिन्याचा हिशोब</p>
+        </div>
+
+        <button
+          className="add-item-btn"
+          onClick={() => setShowForm(true)}
+        >
+          + खर्च जोडा
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="form-overlay">
+
+          <div className="item-form">
+
+            <div className="form-header">
+              <h2>💰 नवीन खर्च</h2>
+
+              <button
+                className="close-btn"
+                onClick={() => setShowForm(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+
+              <div className="form-group">
+                <label>खर्चाचे नाव</label>
+
+                <input
+                  type="text"
+                  placeholder="उदा. भाजीपाला"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Category</label>
+
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  <option value="">Category निवडा</option>
+                  <option value="Grocery">किराणा</option>
+                  <option value="Food">भाजीपाला</option>
+                  <option value="Grocery">दूध</option>
+                  <option value="Travel">प्रवास</option>
+                  <option value="Kitchen">गॅस</option>
+                  <option value="Other">घर</option>
+                  <option value="Other">इतर</option>
+                </select>
+              </div>
+
+              <div className="form-row">
+
+                <div className="form-group">
+                  <label>रक्कम ₹</label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="500"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>तारीख</label>
+
+                  <input
+                    type="date"
+                    value={expenseDate}
+                    onChange={(e) => setExpenseDate(e.target.value)}
+                    required
+                  />
+                </div>
+
+              </div>
+
+              <div className="form-group">
+                <label>कोणाने खर्च केला?</label>
+
+                <select
+                  value={member}
+                  onChange={(e) => setMember(e.target.value)}
+                  required
+                >
+                  <option value="">नाव निवडा</option>
+                  <option value="Ganesh">Ganesh</option>
+                  <option value="Divya">Divya</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Payment Method</label>
+
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  <option value="">Payment निवडा</option>
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Card">Card</option>
+                  <option value="Bank">Bank Transfer</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Notes</label>
+
+                <textarea
+                  rows={3}
+                  placeholder="काही अतिरिक्त माहिती..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+
+              <div className="form-actions">
+
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => {
+                    resetForm()
+                    setShowForm(false)
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="save-btn"
+                  disabled={saving}
+                >
+                  {saving ? 'Saving...' : '💾 खर्च Save करा'}
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+
+        </div>
+      )}
+
+      <div className="recent-activity-list">
+        {loading ? (
+          <p>खर्चाची माहिती loading...</p>
+        ) : expenses.length === 0 ? (
+          <p>अजून कोणताही खर्च नोंदवलेला नाही.</p>
+        ) : (
+          expenses.map((expense) => (
+            <div
+              className="recent-activity-item"
+              key={expense.id}
+            >
+              <div className="recent-activity-info">
+                <strong>{expense.description}</strong>
+                <small>
+                  {expense.expenseDate?.slice(0, 10)}
+                  {expense.memberName ? ` • ${expense.memberName}` : ''}
+                </small>
+              </div>
+
+              <strong className="recent-activity-amount">
+                ₹ {expense.amount.toLocaleString('en-IN')}
+              </strong>
+            </div>
+          ))
+        )}
+      </div>
+
+    </div>
+  )
+}
+
+export default Expenses
+===== BILLS =====
+import { useEffect, useState } from 'react'
+
+type Bill = {
+  id: number
+  name: string
+  category?: string
+  amount: number
+  dueDate: string
+  paidDate?: string | null
+  status?: string
+  person?: string
+  notes?: string | null
+}
+
+function Bills() {
+  const [showForm, setShowForm] = useState(false)
+  const [bills, setBills] = useState<Bill[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState('')
+  const [amount, setAmount] = useState('')
+  const [billDate, setBillDate] = useState(
+    new Date().toISOString().slice(0, 10)
+  )
+  const [dueDate, setDueDate] = useState('')
+  const [paymentDate, setPaymentDate] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [person, setPerson] = useState('')
+  const [notes, setNotes] = useState('')
+
+  const loadBills = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/bills')
+      const result = await response.json()
+
+      if (result.success) {
+        setBills(result.data || [])
+      }
+    } catch (error) {
+      console.error('Failed to load bills:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadBills()
+  }, [])
+
+  const resetForm = () => {
+    setName('')
+    setCategory('')
+    setAmount('')
+    setBillDate(new Date().toISOString().slice(0, 10))
+    setDueDate('')
+    setPaymentDate('')
+    setPaymentMethod('')
+    setPerson('')
+    setNotes('')
+  }
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (!name || !amount || !dueDate || !person) {
+      alert('कृपया आवश्यक माहिती भरा.')
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      const response = await fetch('http://localhost:5000/api/bills', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          category: category || null,
+          amount: Number(amount),
+          dueDate,
+          paidDate: paymentDate || null,
+          status: paymentDate ? 'PAID' : 'PENDING',
+          person,
+          notes: notes || null,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Bill save failed')
+      }
+
+      resetForm()
+      setShowForm(false)
+      await loadBills()
+    } catch (error) {
+      console.error('Failed to save bill:', error)
+      alert('बिल Save करता आला नाही.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="bills-page">
+
+      <div className="items-header">
+        <div>
+          <h2>🧾 घरातील बिले</h2>
+          <p>वीज, मोबाईल, इंटरनेट आणि इतर बिलांचा हिशोब</p>
+        </div>
+
+        <button
+          className="add-item-btn"
+          onClick={() => setShowForm(true)}
+        >
+          + बिल जोडा
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="form-overlay">
+
+          <div className="item-form">
+
+            <div className="form-header">
+              <h2>🧾 नवीन बिल जोडा</h2>
+
+              <button
+                className="close-btn"
+                onClick={() => setShowForm(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+
+              <div className="form-group">
+                <label>बिलाचे नाव</label>
+
+                <input
+                  type="text"
+                  placeholder="उदा. MSEB Electricity"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Bill Category</label>
+
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  <option value="">Category निवडा</option>
+                  <option value="Electricity">वीज</option>
+                  <option value="Mobile">मोबाईल</option>
+                  <option value="Internet">इंटरनेट</option>
+                  <option value="Other">DTH</option>
+                  <option value="Kitchen">गॅस</option>
+                  <option value="Other">पाणी</option>
+                  <option value="Other">इतर</option>
+                </select>
+              </div>
+
+              <div className="form-row">
+
+                <div className="form-group">
+                  <label>बिलाची रक्कम ₹</label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="1500"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Bill Date</label>
+
+                  <input
+                    type="date"
+                    value={billDate}
+                    onChange={(e) => setBillDate(e.target.value)}
+                  />
+                </div>
+
+              </div>
+
+              <div className="form-row">
+
+                <div className="form-group">
+                  <label>Due Date</label>
+
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Payment Date</label>
+
+                  <input
+                    type="date"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                  />
+                </div>
+
+              </div>
+
+              <div className="form-group">
+                <label>Payment Method</label>
+
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  <option value="">Payment निवडा</option>
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Card">Card</option>
+                  <option value="Bank">Bank Transfer</option>
+                  <option value="Auto Debit">Auto Debit</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>कोणाने भरले?</label>
+
+                <select
+                  value={person}
+                  onChange={(e) => setPerson(e.target.value)}
+                  required
+                >
+                  <option value="">नाव निवडा</option>
+                  <option value="Ganesh">Ganesh</option>
+                  <option value="Divya">Divya</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Notes</label>
+
+                <textarea
+                  rows={3}
+                  placeholder="काही अतिरिक्त माहिती..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+
+              <div className="form-actions">
+
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => {
+                    resetForm()
+                    setShowForm(false)
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="save-btn"
+                  disabled={saving}
+                >
+                  {saving ? 'Saving...' : '💾 बिल Save करा'}
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+
+        </div>
+      )}
+
+      <div className="recent-activity-list">
+        {loading ? (
+          <p>बिलांची माहिती loading...</p>
+        ) : bills.length === 0 ? (
+          <p>अजून कोणतेही बिल नोंदवलेले नाही.</p>
+        ) : (
+          bills.map((bill) => (
+            <div
+              className="recent-activity-item"
+              key={bill.id}
+            >
+              <div className="recent-activity-info">
+                <strong>{bill.name}</strong>
+                <small>
+                  Due: {bill.dueDate?.slice(0, 10)}
+                  {bill.person ? ` • ${bill.person}` : ''}
+                  {bill.status ? ` • ${bill.status}` : ''}
+                </small>
+              </div>
+
+              <strong className="recent-activity-amount">
+                ₹ {bill.amount.toLocaleString('en-IN')}
+              </strong>
+            </div>
+          ))
+        )}
+      </div>
+
+    </div>
+  )
+}
+
+export default Bills
+===== INCOME =====
+import { useEffect, useState } from 'react'
+
+type Income = {
+  id: number
+  source: string
+  amount: number
+  incomeDate: string
+  person?: string | null
+  notes?: string | null
+}
+
+function Income() {
+  const [incomes, setIncomes] = useState<Income[]>([])
+  const [source, setSource] = useState('')
+  const [amount, setAmount] = useState('')
+  const [incomeDate, setIncomeDate] = useState(
+    new Date().toISOString().substring(0, 10)
+  )
+  const [person, setPerson] = useState('Ganesh')
+  const [notes, setNotes] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const loadIncome = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/income')
+      const result = await response.json()
+
+      if (result.success) {
+        setIncomes(result.data)
+      }
+    } catch (error) {
+      console.error('Income API error:', error)
+    }
+  }
+
+  useEffect(() => {
+    loadIncome()
+  }, [])
+
+  const handleSave = async () => {
+    if (!source.trim() || !amount || Number(amount) <= 0) {
+      alert('उत्पन्नाचे नाव आणि रक्कम भरा.')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const response = await fetch('http://localhost:5000/api/income', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          source: source.trim(),
+          amount: Number(amount),
+          incomeDate,
+          person,
+          notes: notes.trim() || null,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to save income')
+      }
+
+      setSource('')
+      setAmount('')
+      setNotes('')
+
+      await loadIncome()
+    } catch (error) {
+      console.error('Save income error:', error)
+      alert('उत्पन्न सेव करता आले नाही.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatDate = (date: string) => {
+    return date ? date.substring(0, 10) : ''
+  }
+
+  const formatAmount = (value: number) => {
+    return `₹ ${Number(value).toLocaleString('en-IN')}`
+  }
+
+  return (
+    <div className="page-section">
+
+      <div className="section-header">
+        <div>
+          <h2>उत्पन्न</h2>
+          <p>घरातील उत्पन्नाची नोंद करा</p>
+        </div>
+      </div>
+
+      <div className="form-card">
+
+        <div className="form-grid">
+
+          <div className="form-group">
+            <label>उत्पन्नाचे नाव</label>
+            <input
+              type="text"
+              placeholder="उदा. पगार"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>रक्कम</label>
+            <input
+              type="number"
+              placeholder="₹ 0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>दिनांक</label>
+            <input
+              type="date"
+              value={incomeDate}
+              onChange={(e) => setIncomeDate(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>सदस्य</label>
+            <select
+              value={person}
+              onChange={(e) => setPerson(e.target.value)}
+            >
+              <option value="Ganesh">Ganesh</option>
+              <option value="Divya">Divya</option>
+            </select>
+          </div>
+
+          <div className="form-group full-width">
+            <label>नोंद</label>
+            <input
+              type="text"
+              placeholder="ऐच्छिक"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
+
+        </div>
+
+        <div className="form-actions">
+          <button
+            className="primary-button"
+            onClick={handleSave}
+            disabled={loading}
+          >
+            {loading ? 'सेव्ह होत आहे...' : '＋ उत्पन्न नोंदवा'}
+          </button>
+        </div>
+
+      </div>
+
+      <div className="list-card">
+
+        <div className="list-header">
+          <h3>अलीकडील उत्पन्न</h3>
+        </div>
+
+        {incomes.length === 0 ? (
+          <div className="empty-state">
+            अजून उत्पन्नाची नोंद नाही.
+          </div>
+        ) : (
+          <div className="list-items">
+            {incomes.map((income) => (
+              <div className="list-item" key={income.id}>
+                <div>
+                  <strong>{income.source}</strong>
+                  <small>
+                    {formatDate(income.incomeDate)}
+                    {income.person ? ` • ${income.person}` : ''}
+                  </small>
+                </div>
+
+                <strong>
+                  {formatAmount(income.amount)}
+                </strong>
+              </div>
+            ))}
+          </div>
+        )}
+
+      </div>
+
+    </div>
+  )
+}
+
+export default Income
+===== ITEMS =====
+import { useEffect, useMemo, useState } from 'react'
+import type { Item } from '../types'
+
+const API_URL = 'http://localhost:5000/api'
+
+type MasterItem = {
+  name: string
+  category: string
+}
+
+const defaultMasterItems: MasterItem[] = [
+  { name: 'Milk', category: 'किराणा' },
+  { name: 'Sugar', category: 'किराणा' },
+  { name: 'Rice', category: 'किराणा' },
+  { name: 'Wheat', category: 'किराणा' },
+  { name: 'Oil', category: 'किराणा' },
+  { name: 'Tea', category: 'किराणा' },
+  { name: 'Salt', category: 'किराणा' },
+  { name: 'Onion', category: 'किराणा' },
+  { name: 'Potato', category: 'किराणा' },
+  { name: 'Tomato', category: 'किराणा' },
+  { name: 'Soap', category: 'घर' },
+  { name: 'Detergent', category: 'साफसफाई' },
+  { name: 'Toothpaste', category: 'घर' },
+  { name: 'Gas', category: 'किचन' },
+  { name: 'Battery', category: 'घर' },
+]
+
+function Items() {
+  const [showForm, setShowForm] = useState(false)
+
+  const [itemList, setItemList] = useState<Item[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  // Master item list
+  const [masterItems, setMasterItems] =
+    useState<MasterItem[]>(defaultMasterItems)
+
+  // Item dropdown
+  const [showItemDropdown, setShowItemDropdown] =
+    useState(false)
+
+  const [itemName, setItemName] = useState('')
+  const [category, setCategory] = useState('')
+  const [quantity, setQuantity] = useState('')
+  const [price, setPrice] = useState('')
+  const [purchaseDate, setPurchaseDate] = useState('')
+  const [usedDate, setUsedDate] = useState('')
+  const [person, setPerson] = useState('')
+  const [notes, setNotes] = useState('')
+
+  // Get items from API
+  const loadItems = async () => {
+    try {
+      setLoading(true)
+
+      const response = await fetch(`${API_URL}/items`)
+      const result = await response.json()
+
+      if (result.success) {
+        setItemList(result.data)
+      }
+    } catch (error) {
+      console.error('Items load error:', error)
+      alert(
+        'Items load होत नाहीत. API चालू आहे का ते check करा.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadItems()
+  }, [])
+
+  // Show only date, remove T00:00:00Z
+  const formatDate = (date: string | null | undefined) => {
+    if (!date) return ''
+
+    return date.substring(0, 10)
+  }
+
+  const resetForm = () => {
+    setItemName('')
+    setCategory('')
+    setQuantity('')
+    setPrice('')
+    setPurchaseDate('')
+    setUsedDate('')
+    setPerson('')
+    setNotes('')
+    setShowItemDropdown(false)
+  }
+
+  // Search master items
+  const filteredMasterItems = useMemo(() => {
+    const search = itemName.trim().toLowerCase()
+
+    if (!search) {
+      return masterItems
+    }
+
+    return masterItems.filter((item) =>
+      item.name.toLowerCase().includes(search)
+    )
+  }, [itemName, masterItems])
+
+  // Select item from dropdown
+  const selectItem = (item: MasterItem) => {
+    setItemName(item.name)
+    setCategory(item.category)
+    setShowItemDropdown(false)
+  }
+
+  // Add new master item
+  const addNewMasterItem = () => {
+    const newItemName = window.prompt(
+      'नवीन वस्तूचे नाव लिहा'
+    )
+
+    if (!newItemName) return
+
+    const cleanName = newItemName.trim()
+
+    if (!cleanName) return
+
+    const alreadyExists = masterItems.some(
+      (item) =>
+        item.name.toLowerCase() === cleanName.toLowerCase()
+    )
+
+    if (alreadyExists) {
+      alert('ही वस्तू आधीच list मध्ये आहे.')
+      setItemName(cleanName)
+      setShowItemDropdown(true)
+      return
+    }
+
+    const newMasterItem: MasterItem = {
+      name: cleanName,
+      category: 'इतर',
+    }
+
+    setMasterItems((previousItems) => [
+      newMasterItem,
+      ...previousItems,
+    ])
+
+    setItemName(cleanName)
+    setCategory('इतर')
+    setShowItemDropdown(false)
+  }
+
+  // Save item through API
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    try {
+      setSaving(true)
+
+      const newItem = {
+        name: itemName,
+        category,
+        quantity: Number(quantity),
+        price: Number(price),
+        purchaseDate,
+        usedDate,
+        person,
+        notes,
+      }
+
+      const response = await fetch(`${API_URL}/items`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newItem),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || 'Item save failed'
+        )
+      }
+
+      // Newest item first
+      setItemList((previousItems) => [
+        result.data,
+        ...previousItems,
+      ])
+
+      resetForm()
+      setShowForm(false)
+
+      alert('वस्तू successfully save झाली!')
+    } catch (error) {
+      console.error('Item save error:', error)
+      alert(
+        'वस्तू save झाली नाही. API check करा.'
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="items-page">
+
+      {/* Header */}
+      <div className="items-header">
+
+        <div>
+          <h2>📦 घरातील वस्तू</h2>
+
+          <p>
+            घरातील वस्तूंची नोंद आणि वापराचा हिशोब
+          </p>
+        </div>
+
+        <button
+          className="add-item-btn"
+          onClick={() => {
+            resetForm()
+            setShowForm(true)
+          }}
+        >
+          + वस्तू जोडा
+        </button>
+
+      </div>
+
+      {/* Item List */}
+      <div className="dashboard-section">
+
+        <div className="section-title">
+
+          <div>
+            <h3>📋 वस्तूंची यादी</h3>
+
+            <p>
+              एकूण {itemList.length} वस्तू
+            </p>
+          </div>
+
+        </div>
+
+        {loading ? (
+
+          <div className="empty-activity">
+            <div>⏳</div>
+            <p>वस्तू load होत आहेत...</p>
+          </div>
+
+        ) : itemList.length === 0 ? (
+
+          <div className="empty-activity">
+            <div>📦</div>
+
+            <p>
+              अजून कोणतीही वस्तू जोडलेली नाही.
+            </p>
+
+            <small>
+              वरच्या "वस्तू जोडा" button वर click करा.
+            </small>
+          </div>
+
+        ) : (
+
+          <div className="item-list">
+
+            {itemList.map((item) => (
+
+              <div
+                className="item-row"
+                key={item.id}
+              >
+
+                <div className="item-main">
+
+                  <div className="item-icon">
+                    📦
+                  </div>
+
+                  <div>
+                    <strong>
+                      {item.name}
+                    </strong>
+
+                    <span>
+                      {item.category}
+                    </span>
+                  </div>
+
+                </div>
+
+                <div className="item-detail">
+                  <span>Quantity</span>
+
+                  <strong>
+                    {item.quantity}
+                  </strong>
+                </div>
+
+                <div className="item-detail">
+                  <span>किंमत</span>
+
+                  <strong>
+                    ₹ {item.price}
+                  </strong>
+                </div>
+
+                <div className="item-detail">
+                  <span>नोंद केली</span>
+
+                  <strong>
+                    {item.person}
+                  </strong>
+                </div>
+
+                {/* Purchase Date */}
+                <div className="item-detail">
+                  <span>आणल्याची तारीख</span>
+
+                  <strong>
+                    {formatDate(item.purchaseDate)}
+                  </strong>
+                </div>
+
+                {/* Used Date */}
+                <div className="item-detail">
+                  <span>वापरायला काढले</span>
+
+                  <strong>
+                    {item.usedDate
+                      ? formatDate(item.usedDate)
+                      : 'अजून वापरले नाही'}
+                  </strong>
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        )}
+
+      </div>
+
+      {/* Add Item Modal */}
+      {showForm && (
+
+        <div className="form-overlay">
+
+          <div className="item-form">
+
+            {/* Form Header */}
+            <div className="form-header">
+
+              <h2>
+                📦 नवीन वस्तू जोडा
+              </h2>
+
+              <button
+                className="close-btn"
+                type="button"
+                onClick={() => {
+                  resetForm()
+                  setShowForm(false)
+                }}
+              >
+                ✕
+              </button>
+
+            </div>
+
+            <form onSubmit={handleSubmit}>
+
+              {/* Item Name Search Dropdown */}
+              <div className="form-group item-name-wrapper">
+
+                <label>
+                  वस्तूचे नाव
+                </label>
+
+                <div className="item-search-input">
+
+                  <input
+                    type="text"
+                    placeholder="वस्तू शोधा..."
+                    value={itemName}
+                    autoComplete="off"
+                    onFocus={() =>
+                      setShowItemDropdown(true)
+                    }
+                    onChange={(e) => {
+                      setItemName(e.target.value)
+
+                      setShowItemDropdown(true)
+
+                      const exactItem =
+                        masterItems.find(
+                          (item) =>
+                            item.name.toLowerCase() ===
+                            e.target.value
+                              .trim()
+                              .toLowerCase()
+                        )
+
+                      if (exactItem) {
+                        setCategory(
+                          exactItem.category
+                        )
+                      } else {
+                        setCategory('')
+                      }
+                    }}
+                    required
+                  />
+
+                  <span className="item-dropdown-arrow">
+                    ▾
+                  </span>
+
+                </div>
+
+                {/* Dropdown */}
+                {showItemDropdown && (
+
+                  <div className="item-name-dropdown">
+
+                    {filteredMasterItems.length > 0 ? (
+
+                      filteredMasterItems.map(
+                        (item) => (
+
+                          <button
+                            type="button"
+                            className="item-dropdown-option"
+                            key={`${item.name}-${item.category}`}
+                            onClick={() =>
+                              selectItem(item)
+                            }
+                          >
+
+                            <span className="item-option-icon">
+                              📦
+                            </span>
+
+                            <span className="item-option-content">
+
+                              <strong>
+                                {item.name}
+                              </strong>
+
+                              <small>
+                                {item.category}
+                              </small>
+
+                            </span>
+
+                          </button>
+
+                        )
+                      )
+
+                    ) : (
+
+                      <div className="item-no-result">
+
+                        <span>
+                          🔍
+                        </span>
+
+                        <p>
+                          "{itemName}" सापडले नाही
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={addNewMasterItem}
+                        >
+                          + नवीन वस्तू जोडा
+                        </button>
+
+                      </div>
+
+                    )}
+
+                    {/* Add new item */}
+                    {filteredMasterItems.length > 0 && (
+                      <button
+                        type="button"
+                        className="item-dropdown-add"
+                        onClick={addNewMasterItem}
+                      >
+                        ＋ नवीन वस्तू जोडा
+                      </button>
+                    )}
+
+                  </div>
+
+                )}
+
+              </div>
+
+              {/* Category */}
+              <div className="form-group">
+
+                <label>
+                  Category
+                </label>
+
+                <select
+                  value={category}
+                  onChange={(e) =>
+                    setCategory(e.target.value)
+                  }
+                  required
+                >
+
+                  <option value="">
+                    Category निवडा
+                  </option>
+
+                  <option value="किचन">
+                    किचन
+                  </option>
+
+                  <option value="घर">
+                    घर
+                  </option>
+
+                  <option value="साफसफाई">
+                    साफसफाई
+                  </option>
+
+                  <option value="किराणा">
+                    किराणा
+                  </option>
+
+                  <option value="इतर">
+                    इतर
+                  </option>
+
+                </select>
+
+              </div>
+
+              {/* Quantity + Price */}
+              <div className="form-row">
+
+                <div className="form-group">
+
+                  <label>
+                    किती आणले?
+                  </label>
+
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="1"
+                    value={quantity}
+                    onChange={(e) =>
+                      setQuantity(
+                        e.target.value
+                      )
+                    }
+                    required
+                  />
+
+                </div>
+
+                <div className="form-group">
+
+                  <label>
+                    किंमत ₹
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="900"
+                    value={price}
+                    onChange={(e) =>
+                      setPrice(
+                        e.target.value
+                      )
+                    }
+                    required
+                  />
+
+                </div>
+
+              </div>
+
+              {/* Dates */}
+              <div className="form-row">
+
+                <div className="form-group">
+
+                  <label>
+                    आणल्याची तारीख
+                  </label>
+
+                  <input
+                    type="date"
+                    value={purchaseDate}
+                    onChange={(e) =>
+                      setPurchaseDate(
+                        e.target.value
+                      )
+                    }
+                    required
+                  />
+
+                </div>
+
+                <div className="form-group">
+
+                  <label>
+                    वापरायला काढल्याची तारीख
+                  </label>
+
+                  <input
+                    type="date"
+                    value={usedDate}
+                    onChange={(e) =>
+                      setUsedDate(
+                        e.target.value
+                      )
+                    }
+                  />
+
+                </div>
+
+              </div>
+
+              {/* Person */}
+              <div className="form-group">
+
+                <label>
+                  कोणाने नोंद केली?
+                </label>
+
+                <select
+                  value={person}
+                  onChange={(e) =>
+                    setPerson(
+                      e.target.value
+                    )
+                  }
+                  required
+                >
+
+                  <option value="">
+                    नाव निवडा
+                  </option>
+
+                  <option value="Ganesh">
+                    Ganesh
+                  </option>
+
+                  <option value="Divya">
+                    Divya
+                  </option>
+
+                </select>
+
+              </div>
+
+              {/* Notes */}
+              <div className="form-group">
+
+                <label>
+                  Notes
+                </label>
+
+                <textarea
+                  rows={3}
+                  placeholder="काही अतिरिक्त माहिती..."
+                  value={notes}
+                  onChange={(e) =>
+                    setNotes(
+                      e.target.value
+                    )
+                  }
+                />
+
+              </div>
+
+              {/* Actions */}
+              <div className="form-actions">
+
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => {
+                    resetForm()
+                    setShowForm(false)
+                  }}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="save-btn"
+                  disabled={saving}
+                >
+                  {saving
+                    ? '⏳ Saving...'
+                    : '💾 Save करा'}
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+
+        </div>
+
+      )}
+
+    </div>
+  )
+}
+
+export default Items===== LOANS =====
+import { useEffect, useState } from "react"
+
+type Loan = {
+  id: number
+  name: string
+  principalAmount: number
+  interestRate: number
+  tenureMonths: number
+  emiAmount: number
+  startDate: string
+  endDate: string | null
+  person: string | null
+  status: string
+  notes: string | null
+}
+
+type LoanPayment = {
+  id: number
+  loanId: number
+  amount: number
+  paymentDate: string
+  principalAmount: number
+  interestAmount: number
+  notes: string | null
+}
+
+const API = "http://localhost:5000/api"
+
+const today = () => new Date().toISOString().slice(0, 10)
+
+const formatAmount = (value: number) =>
+  `₹ ${Number(value || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+
+const formatDate = (value: string) => value?.slice(0, 10) || "-"
+
+const calculateEMI = (
+  principal: number,
+  annualRate: number,
+  tenureMonths: number
+) => {
+  if (principal <= 0 || tenureMonths <= 0) return 0
+
+  if (annualRate <= 0) {
+    return principal / tenureMonths
+  }
+
+  const monthlyRate = annualRate / 12 / 100
+  const factor = Math.pow(1 + monthlyRate, tenureMonths)
+
+  return (principal * monthlyRate * factor) / (factor - 1)
+}
+
+function Loans() {
+  const [loans, setLoans] = useState<Loan[]>([])
+  const [payments, setPayments] = useState<LoanPayment[]>([])
+
+  const [form, setForm] = useState({
+    name: "",
+    principalAmount: "",
+    interestRate: "",
+    tenureMonths: "",
+    emiAmount: "",
+    person: "Ganesh",
+    startDate: today(),
+    endDate: "",
+    notes: "",
+  })
+
+  const [paymentForm, setPaymentForm] = useState({
+    loanId: "",
+    amount: "",
+    paymentDate: today(),
+    principalAmount: "",
+    interestAmount: "",
+    notes: "",
+  })
+
+  const [loading, setLoading] = useState(false)
+  const [paymentLoading, setPaymentLoading] = useState(false)
+
+  // ---------------------------------------------------------
+  // LOAD LOANS
+  // ---------------------------------------------------------
+
+  const loadLoans = async () => {
+    try {
+      const response = await fetch(`${API}/loans`)
+      const result = await response.json()
+
+      if (result.success) {
+        setLoans(result.data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch loans:", error)
+    }
+  }
+
+  // ---------------------------------------------------------
+  // LOAD PAYMENTS
+  // ---------------------------------------------------------
+
+  const loadPayments = async () => {
+    try {
+      const response = await fetch(`${API}/loan-payments`)
+      const result = await response.json()
+
+      if (result.success) {
+        setPayments(result.data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch loan payments:", error)
+    }
+  }
+
+  useEffect(() => {
+    loadLoans()
+    loadPayments()
+  }, [])
+
+  // ---------------------------------------------------------
+  // CALCULATE PAYMENT BREAKDOWN
+  // ---------------------------------------------------------
+
+  const calculatePaymentBreakdown = (
+    loan: Loan,
+    amount: number
+  ) => {
+    const loanPayments = payments.filter(
+      (payment) => payment.loanId === loan.id
+    )
+
+    // Already paid principal
+    const totalPrincipalPaid = loanPayments.reduce(
+      (sum, payment) =>
+        sum + Number(payment.principalAmount || 0),
+      0
+    )
+
+    // Current remaining principal
+    const remainingPrincipal = Math.max(
+      Number(loan.principalAmount) - totalPrincipalPaid,
+      0
+    )
+
+    if (amount <= 0 || remainingPrincipal <= 0) {
+      return {
+        principal: 0,
+        interest: 0,
+      }
+    }
+
+    // Monthly interest on current remaining principal
+    const monthlyInterest =
+      Number(loan.interestRate || 0) / 12 / 100
+
+    const interestAmount =
+      remainingPrincipal * monthlyInterest
+
+    // Principal portion of EMI
+    const principalAmount = Math.min(
+      Math.max(amount - interestAmount, 0),
+      remainingPrincipal
+    )
+
+    return {
+      principal: Number(principalAmount.toFixed(2)),
+      interest: Number(
+        Math.min(interestAmount, amount).toFixed(2)
+      ),
+    }
+  }
+
+  // ---------------------------------------------------------
+  // LOAN FORM CHANGE
+  // ---------------------------------------------------------
+
+  const handleLoanChange = (
+    event: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = event.target
+
+    setForm((previous) => {
+      const next = {
+        ...previous,
+        [name]: value,
+      }
+
+      if (
+        [
+          "principalAmount",
+          "interestRate",
+          "tenureMonths",
+        ].includes(name)
+      ) {
+        const emi = calculateEMI(
+          Number(next.principalAmount || 0),
+          Number(next.interestRate || 0),
+          Number(next.tenureMonths || 0)
+        )
+
+        next.emiAmount =
+          emi > 0 ? emi.toFixed(2) : ""
+      }
+
+      return next
+    })
+  }
+
+  // ---------------------------------------------------------
+  // PAYMENT FORM CHANGE
+  // ---------------------------------------------------------
+
+  const handlePaymentChange = (
+    event: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = event.target
+
+    // Loan selection
+    if (name === "loanId") {
+      const selectedLoan = loans.find(
+        (loan) => String(loan.id) === value
+      )
+
+      if (selectedLoan) {
+        const amount = Number(selectedLoan.emiAmount || 0)
+
+        const breakdown = calculatePaymentBreakdown(
+          selectedLoan,
+          amount
+        )
+
+        setPaymentForm((previous) => ({
+          ...previous,
+          loanId: value,
+          amount: String(amount),
+          principalAmount: String(breakdown.principal),
+          interestAmount: String(breakdown.interest),
+        }))
+
+        return
+      }
+
+      setPaymentForm((previous) => ({
+        ...previous,
+        loanId: value,
+        amount: "",
+        principalAmount: "",
+        interestAmount: "",
+      }))
+
+      return
+    }
+
+    // EMI amount changed
+    if (name === "amount") {
+      const selectedLoan = loans.find(
+        (loan) => String(loan.id) === paymentForm.loanId
+      )
+
+      if (selectedLoan) {
+        const amount = Number(value || 0)
+
+        const breakdown = calculatePaymentBreakdown(
+          selectedLoan,
+          amount
+        )
+
+        setPaymentForm((previous) => ({
+          ...previous,
+          amount: value,
+          principalAmount: String(breakdown.principal),
+          interestAmount: String(breakdown.interest),
+        }))
+
+        return
+      }
+    }
+
+    setPaymentForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }))
+  }
+
+  // ---------------------------------------------------------
+  // ADD LOAN
+  // ---------------------------------------------------------
+
+  const addLoan = async (event: React.FormEvent) => {
+    event.preventDefault()
+
+    if (
+      !form.name ||
+      !form.principalAmount ||
+      !form.tenureMonths ||
+      !form.emiAmount ||
+      !form.startDate
+    ) {
+      alert("कृपया आवश्यक माहिती भरा.")
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      const response = await fetch(`${API}/loans`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: form.name,
+          principalAmount: Number(
+            form.principalAmount
+          ),
+          interestRate: Number(
+            form.interestRate || 0
+          ),
+          tenureMonths: Number(
+            form.tenureMonths
+          ),
+          emiAmount: Number(
+            form.emiAmount
+          ),
+          startDate: form.startDate,
+          endDate: form.endDate || null,
+          person: form.person,
+          status: "ACTIVE",
+          notes: form.notes || null,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        alert(
+          result.message ||
+            "कर्ज सेव्ह करता आले नाही."
+        )
+        return
+      }
+
+      setForm({
+        name: "",
+        principalAmount: "",
+        interestRate: "",
+        tenureMonths: "",
+        emiAmount: "",
+        person: "Ganesh",
+        startDate: today(),
+        endDate: "",
+        notes: "",
+      })
+
+      await loadLoans()
+
+      alert("कर्ज यशस्वीपणे नोंदवले.")
+    } catch (error) {
+      console.error("Add loan error:", error)
+      alert("कर्ज सेव्ह करताना समस्या आली.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ---------------------------------------------------------
+  // DELETE LOAN
+  // ---------------------------------------------------------
+
+  const deleteLoan = async (loanId: number) => {
+    const confirmed = window.confirm(
+      "हे कर्ज delete करायचे आहे का?"
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      const response = await fetch(
+        `${API}/loans/${loanId}`,
+        {
+          method: "DELETE",
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        alert(
+          result.message ||
+            "कर्ज delete करता आले नाही."
+        )
+        return
+      }
+
+      await loadLoans()
+      await loadPayments()
+
+      alert("कर्ज delete झाले.")
+    } catch (error) {
+      console.error("Delete loan error:", error)
+      alert("कर्ज delete करताना समस्या आली.")
+    }
+  }
+
+  // ---------------------------------------------------------
+  // ADD EMI PAYMENT
+  // ---------------------------------------------------------
+
+  const addPayment = async (
+    event: React.FormEvent
+  ) => {
+    event.preventDefault()
+
+    if (
+      !paymentForm.loanId ||
+      !paymentForm.amount ||
+      !paymentForm.paymentDate
+    ) {
+      alert(
+        "कर्ज, रक्कम आणि Payment Date भरा."
+      )
+      return
+    }
+
+    const selectedLoan = loans.find(
+      (loan) =>
+        String(loan.id) === paymentForm.loanId
+    )
+
+    if (!selectedLoan) {
+      alert("कृपया योग्य कर्ज निवडा.")
+      return
+    }
+
+    const amount = Number(
+      paymentForm.amount
+    )
+
+    if (amount <= 0) {
+      alert("EMI रक्कम योग्य भरा.")
+      return
+    }
+
+    try {
+      setPaymentLoading(true)
+
+      const response = await fetch(
+        `${API}/loan-payments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            loanId: Number(
+              paymentForm.loanId
+            ),
+            amount,
+            paymentDate:
+              paymentForm.paymentDate,
+            principalAmount: Number(
+              paymentForm.principalAmount || 0
+            ),
+            interestAmount: Number(
+              paymentForm.interestAmount || 0
+            ),
+            notes:
+              paymentForm.notes || null,
+          }),
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        alert(
+          result.message ||
+            "EMI सेव्ह करता आली नाही."
+        )
+        return
+      }
+
+      setPaymentForm({
+        loanId: "",
+        amount: "",
+        paymentDate: today(),
+        principalAmount: "",
+        interestAmount: "",
+        notes: "",
+      })
+
+      await loadPayments()
+      await loadLoans()
+
+      alert(
+        "EMI payment यशस्वीपणे नोंदवला."
+      )
+    } catch (error) {
+      console.error(
+        "Add loan payment error:",
+        error
+      )
+
+      alert(
+        "EMI सेव्ह करताना समस्या आली."
+      )
+    } finally {
+      setPaymentLoading(false)
+    }
+  }
+
+  // ---------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------
+
+  return (
+    <div className="page-section">
+
+      {/* =====================================================
+          LOAN FORM
+      ===================================================== */}
+
+      <div className="page-header">
+        <div>
+          <h1>कर्ज</h1>
+          <p>घरातील कर्जाची नोंद करा</p>
+        </div>
+      </div>
+
+      <form
+        className="form-card"
+        onSubmit={addLoan}
+      >
+
+        <div className="form-row">
+
+          <div className="form-group">
+            <label>कर्जाचे नाव</label>
+
+            <input
+              name="name"
+              value={form.name}
+              onChange={handleLoanChange}
+              placeholder="उदा. Home Loan"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>कर्जाची रक्कम</label>
+
+            <input
+              name="principalAmount"
+              type="number"
+              value={form.principalAmount}
+              onChange={handleLoanChange}
+              placeholder="₹ 0"
+            />
+          </div>
+
+        </div>
+
+        <div className="form-row">
+
+          <div className="form-group">
+            <label>व्याजदर (%)</label>
+
+            <input
+              name="interestRate"
+              type="number"
+              step="0.01"
+              value={form.interestRate}
+              onChange={handleLoanChange}
+              placeholder="उदा. 8.5"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>कालावधी (महिने)</label>
+
+            <input
+              name="tenureMonths"
+              type="number"
+              value={form.tenureMonths}
+              onChange={handleLoanChange}
+              placeholder="उदा. 240"
+            />
+          </div>
+
+        </div>
+
+        <div className="form-row">
+
+          <div className="form-group">
+            <label>EMI रक्कम</label>
+
+            <input
+              name="emiAmount"
+              type="number"
+              value={form.emiAmount}
+              readOnly
+              placeholder="₹ 0"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>सदस्य</label>
+
+            <select
+              name="person"
+              value={form.person}
+              onChange={handleLoanChange}
+            >
+              <option value="Ganesh">
+                Ganesh
+              </option>
+
+              <option value="Divya">
+                Divya
+              </option>
+            </select>
+          </div>
+
+        </div>
+
+        <div className="form-row">
+
+          <div className="form-group">
+            <label>
+              सुरुवातीची तारीख
+            </label>
+
+            <input
+              name="startDate"
+              type="date"
+              value={form.startDate}
+              onChange={handleLoanChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>
+              समाप्तीची तारीख
+            </label>
+
+            <input
+              name="endDate"
+              type="date"
+              value={form.endDate}
+              onChange={handleLoanChange}
+            />
+          </div>
+
+        </div>
+
+        <div className="form-group">
+          <label>नोंद</label>
+
+          <input
+            name="notes"
+            value={form.notes}
+            onChange={handleLoanChange}
+            placeholder="ऐच्छिक"
+          />
+        </div>
+
+        <div className="form-actions">
+          <button
+            type="submit"
+            disabled={loading}
+          >
+            {loading
+              ? "सेव्ह होत आहे..."
+              : "＋ कर्ज नोंदवा"}
+          </button>
+        </div>
+
+      </form>
+
+      {/* =====================================================
+          LOANS LIST
+      ===================================================== */}
+
+      <div className="list-section">
+
+        <div className="section-title">
+          <div>
+            <h2>अलीकडील कर्ज</h2>
+            <p>
+              तुमच्या घरातील कर्जांची नोंद
+            </p>
+          </div>
+        </div>
+
+        {loans.length === 0 ? (
+
+          <div className="empty-activity">
+            🏦
+            <p>
+              अजून कोणतेही कर्ज नोंदवलेले नाही.
+            </p>
+          </div>
+
+        ) : (
+
+          <div className="activity-list">
+
+            {loans.map((loan) => {
+
+              const loanPayments =
+                payments.filter(
+                  (payment) =>
+                    payment.loanId === loan.id
+                )
+
+              // Total EMI amount paid
+              const totalPaid =
+                loanPayments.reduce(
+                  (sum, payment) =>
+                    sum +
+                    Number(
+                      payment.amount || 0
+                    ),
+                  0
+                )
+
+              // IMPORTANT:
+              // Remaining principal should reduce
+              // ONLY by principalAmount.
+              const totalPrincipalPaid =
+                loanPayments.reduce(
+                  (sum, payment) =>
+                    sum +
+                    Number(
+                      payment.principalAmount ||
+                        0
+                    ),
+                  0
+                )
+
+              const remainingPrincipal =
+                Math.max(
+                  Number(
+                    loan.principalAmount
+                  ) -
+                    totalPrincipalPaid,
+                  0
+                )
+
+              return (
+                <div
+                  className="recent-activity-item"
+                  key={loan.id}
+                >
+
+                  <div className="recent-activity-info">
+
+                    <strong>
+                      {loan.name}
+                    </strong>
+
+                    <small>
+                      Principal{" "}
+                      {formatAmount(
+                        loan.principalAmount
+                      )}
+                      {" • "}
+                      Interest{" "}
+                      {loan.interestRate}%
+                    </small>
+
+                    <small>
+                      EMI{" "}
+                      {formatAmount(
+                        loan.emiAmount
+                      )}
+                      {" • "}
+                      {loan.tenureMonths} महिने
+                    </small>
+
+                    <small>
+                      Total Paid{" "}
+                      {formatAmount(
+                        totalPaid
+                      )}
+                      {" • "}
+                      Remaining Principal{" "}
+                      {formatAmount(
+                        remainingPrincipal
+                      )}
+                    </small>
+
+                    <small>
+                      {formatDate(
+                        loan.startDate
+                      )}
+                      {" • "}
+                      {loan.person || "-"}
+                    </small>
+
+                  </div>
+
+                  <div className="recent-activity-amount">
+                    {formatAmount(
+                      loan.emiAmount
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      deleteLoan(loan.id)
+                    }
+                    style={{
+                      marginLeft: "12px",
+                    }}
+                  >
+                    Delete
+                  </button>
+
+                </div>
+              )
+            })}
+
+          </div>
+        )}
+
+      </div>
+
+      {/* =====================================================
+          EMI PAYMENT
+      ===================================================== */}
+
+      <div className="list-section">
+
+        <div className="section-title">
+
+          <div>
+            <h2>
+              EMI / कर्ज भरणा
+            </h2>
+
+            <p>
+              भरलेली EMI किंवा कर्जाची
+              रक्कम नोंदवा
+            </p>
+          </div>
+
+        </div>
+
+        <form
+          className="form-card"
+          onSubmit={addPayment}
+        >
+
+          <div className="form-row">
+
+            <div className="form-group">
+              <label>कर्ज निवडा</label>
+
+              <select
+                name="loanId"
+                value={paymentForm.loanId}
+                onChange={handlePaymentChange}
+              >
+
+                <option value="">
+                  कर्ज निवडा
+                </option>
+
+                {loans.map((loan) => (
+                  <option
+                    key={loan.id}
+                    value={loan.id}
+                  >
+                    {loan.name} — EMI{" "}
+                    {formatAmount(
+                      loan.emiAmount
+                    )}
+                  </option>
+                ))}
+
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>EMI रक्कम</label>
+
+              <input
+                name="amount"
+                type="number"
+                value={paymentForm.amount}
+                onChange={handlePaymentChange}
+                placeholder="₹ 0"
+              />
+            </div>
+
+          </div>
+
+          <div className="form-row">
+
+            <div className="form-group">
+              <label>
+                Payment Date
+              </label>
+
+              <input
+                name="paymentDate"
+                type="date"
+                value={
+                  paymentForm.paymentDate
+                }
+                onChange={handlePaymentChange}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>
+                Principal रक्कम
+              </label>
+
+              <input
+                name="principalAmount"
+                type="number"
+                value={
+                  paymentForm.principalAmount
+                }
+                onChange={handlePaymentChange}
+                placeholder="₹ 0"
+              />
+            </div>
+
+          </div>
+
+          <div className="form-row">
+
+            <div className="form-group">
+              <label>
+                Interest रक्कम
+              </label>
+
+              <input
+                name="interestAmount"
+                type="number"
+                value={
+                  paymentForm.interestAmount
+                }
+                onChange={handlePaymentChange}
+                placeholder="₹ 0"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>नोंद</label>
+
+              <input
+                name="notes"
+                value={paymentForm.notes}
+                onChange={handlePaymentChange}
+                placeholder="उदा. September EMI"
+              />
+            </div>
+
+          </div>
+
+          <div className="form-actions">
+
+            <button
+              type="submit"
+              disabled={paymentLoading}
+            >
+              {paymentLoading
+                ? "सेव्ह होत आहे..."
+                : "＋ EMI नोंदवा"}
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+      {/* =====================================================
+          PAYMENT HISTORY
+      ===================================================== */}
+
+      <div className="list-section">
+
+        <div className="section-title">
+
+          <div>
+            <h2>
+              EMI Payment History
+            </h2>
+
+            <p>
+              भरलेल्या EMI ची नोंद
+            </p>
+          </div>
+
+        </div>
+
+        {payments.length === 0 ? (
+
+          <div className="empty-activity">
+            💳
+
+            <p>
+              अजून कोणतीही EMI
+              नोंदवलेली नाही.
+            </p>
+          </div>
+
+        ) : (
+
+          <div className="activity-list">
+
+            {payments.map((payment) => {
+
+              const loan = loans.find(
+                (item) =>
+                  item.id === payment.loanId
+              )
+
+              return (
+                <div
+                  className="recent-activity-item"
+                  key={payment.id}
+                >
+
+                  <div className="recent-activity-info">
+
+                    <strong>
+                      {loan?.name ||
+                        `Loan #${payment.loanId}`}
+                    </strong>
+
+                    <small>
+                      {formatDate(
+                        payment.paymentDate
+                      )}
+                    </small>
+
+                    <small>
+                      Principal{" "}
+                      {formatAmount(
+                        payment.principalAmount
+                      )}
+                      {" • "}
+                      Interest{" "}
+                      {formatAmount(
+                        payment.interestAmount
+                      )}
+                    </small>
+
+                    {payment.notes && (
+                      <small>
+                        {payment.notes}
+                      </small>
+                    )}
+
+                  </div>
+
+                  <div className="recent-activity-amount">
+                    {formatAmount(
+                      payment.amount
+                    )}
+                  </div>
+
+                </div>
+              )
+            })}
+
+          </div>
+        )}
+
+      </div>
+
+    </div>
+  )
+}
+
+export default Loans===== SERVER =====
+import { Temporal } from "@js-temporal/polyfill";
+
+(globalThis as typeof globalThis & { Temporal: typeof Temporal }).Temporal =
+  Temporal;
+
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import { db } from "./prisma/db.js";
+
+const app = express();
+const PORT = 5000;
+
+app.use(cors());
+app.use(express.json());
+
+const toInstant = (date: string) =>
+  Temporal.Instant.from(`${date}T00:00:00Z`);
+
+const getMemberId = async (name?: string | null) => {
+  if (!name) return null;
+
+  const member = await db.orm.public.Member
+    .where({ name })
+    .first();
+
+  return member ? Number(member.id) : null;
+};
+
+const getCategoryId = async (
+  name?: string | null,
+  type = "EXPENSE"
+) => {
+  if (!name) return null;
+
+  const category = await db.orm.public.Category
+    .where({ name, type })
+    .first();
+
+  return category ? Number(category.id) : null;
+};
+
+/* =========================
+   HEALTH
+========================= */
+
+app.get("/api/health", (_req, res) => {
+  res.json({
+    success: true,
+    message: "Ghar Hishob API is running",
+  });
+});
+
+/* =========================
+   MEMBERS
+========================= */
+
+app.get("/api/members", async (_req, res) => {
+  try {
+    const members = await db.orm.public.Member.all();
+
+    res.json({
+      success: true,
+      data: members,
+    });
+  } catch (error) {
+    console.error("GET /api/members error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch members",
+    });
+  }
+});
+
+/* =========================
+   CATEGORIES
+========================= */
+
+app.get("/api/categories", async (_req, res) => {
+  try {
+    const categories = await db.orm.public.Category.all();
+
+    res.json({
+      success: true,
+      data: categories,
+    });
+  } catch (error) {
+    console.error("GET /api/categories error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch categories",
+    });
+  }
+});
+
+/* =========================
+   ITEMS
+========================= */
+
+app.get("/api/items", async (_req, res) => {
+  try {
+    const transactions = await db.orm.public.ItemTransaction.all();
+
+    const items = await Promise.all(
+      transactions.map(async (transaction) => {
+        const item = await db.orm.public.ItemMaster
+          .where({ id: transaction.itemId })
+          .first();
+
+        const category = item?.categoryId
+          ? await db.orm.public.Category
+              .where({ id: item.categoryId })
+              .first()
+          : null;
+
+        const member = transaction.memberId
+          ? await db.orm.public.Member
+              .where({ id: transaction.memberId })
+              .first()
+          : null;
+
+        return {
+          id: transaction.id,
+          name: item?.name ?? "",
+          category: category?.name ?? null,
+          quantity: transaction.quantity,
+          price: transaction.price,
+          purchaseDate: transaction.purchaseDate,
+          usedDate: transaction.usedDate,
+          person: member?.name ?? null,
+          notes: transaction.notes,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: items,
+    });
+  } catch (error) {
+    console.error("GET /api/items error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch items",
+    });
+  }
+});
+
+app.post("/api/items", async (req, res) => {
+  try {
+    const {
+      name,
+      category,
+      quantity,
+      price,
+      purchaseDate,
+      usedDate,
+      person,
+      notes,
+    } = req.body;
+
+    if (!name || !purchaseDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Item name and purchase date are required",
+      });
+    }
+
+    let itemMaster = await db.orm.public.ItemMaster
+      .where({ name })
+      .first();
+
+    if (!itemMaster) {
+      const categoryId = await getCategoryId(category, "EXPENSE");
+
+      itemMaster = await db.orm.public.ItemMaster.create({
+        name,
+        categoryId,
+      });
+    }
+
+    const memberId = await getMemberId(person);
+
+
+    const transaction = await db.orm.public.ItemTransaction.create({
+      itemId: itemMaster.id,
+      quantity: Number(quantity ?? 1),
+      price: Number(price ?? 0),
+      purchaseDate: toInstant(purchaseDate),
+      usedDate: usedDate ? toInstant(usedDate) : null,
+      memberId,
+      notes: notes || null,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Item added successfully",
+      data: transaction,
+    });
+  } catch (error) {
+    console.error("POST /api/items error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to add item",
+    });
+  }
+});
+
+/* =========================
+   EXPENSES
+========================= */
+
+app.get("/api/expenses", async (_req, res) => {
+  try {
+    const expenses = await db.orm.public.Expense.all();
+
+    const data = await Promise.all(
+      expenses.map(async (expense) => {
+        const category = expense.categoryId
+          ? await db.orm.public.Category
+              .where({ id: expense.categoryId })
+              .first()
+          : null;
+
+        const member = expense.memberId
+          ? await db.orm.public.Member
+              .where({ id: expense.memberId })
+              .first()
+          : null;
+
+        return {
+          id: expense.id,
+          category: category?.name ?? null,
+          amount: expense.amount,
+          expenseDate: expense.expenseDate,
+          person: member?.name ?? null,
+          description: expense.description,
+          notes: expense.notes,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("GET /api/expenses error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch expenses",
+    });
+  }
+});
+
+app.post("/api/expenses", async (req, res) => {
+  try {
+    const {
+      category,
+      amount,
+      expenseDate,
+      person,
+      description,
+      notes,
+    } = req.body;
+
+    if (!amount || !expenseDate || !description) {
+      return res.status(400).json({
+        success: false,
+        message: "Amount, date and description are required",
+      });
+    }
+
+    const categoryId = await getCategoryId(category, "EXPENSE");
+    const memberId = await getMemberId(person);
+
+    const expense = await db.orm.public.Expense.create({
+      categoryId,
+      amount: Number(amount),
+      expenseDate: toInstant(expenseDate),
+      memberId,
+      description,
+      notes: notes || null,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Expense added successfully",
+      data: expense,
+    });
+  } catch (error) {
+    console.error("POST /api/expenses error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to add expense",
+    });
+  }
+});
+
+/* =========================
+   BILLS
+========================= */
+
+app.get("/api/bills", async (_req, res) => {
+  try {
+    const bills = await db.orm.public.Bill.all();
+
+    const data = await Promise.all(
+      bills.map(async (bill) => {
+        const category = bill.categoryId
+          ? await db.orm.public.Category
+              .where({ id: bill.categoryId })
+              .first()
+          : null;
+
+        const member = bill.memberId
+          ? await db.orm.public.Member
+              .where({ id: bill.memberId })
+              .first()
+          : null;
+
+        return {
+          id: bill.id,
+          name: bill.name,
+          category: category?.name ?? null,
+          amount: bill.amount,
+          dueDate: bill.dueDate,
+          paidDate: bill.paidDate,
+          status: bill.status,
+          person: member?.name ?? null,
+          notes: bill.notes,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("GET /api/bills error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch bills",
+    });
+  }
+});
+
+app.post("/api/bills", async (req, res) => {
+  try {
+    const {
+      name,
+      category,
+      amount,
+      dueDate,
+      paidDate,
+      status,
+      person,
+      notes,
+    } = req.body;
+
+    if (!name || !amount || !dueDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Bill name, amount and due date are required",
+      });
+    }
+
+    const categoryId = await getCategoryId(category, "BILL");
+    const memberId = await getMemberId(person);
+
+    const bill = await db.orm.public.Bill.create({
+      name,
+      categoryId,
+      amount: Number(amount),
+      dueDate: toInstant(dueDate),
+      paidDate: paidDate ? toInstant(paidDate) : null,
+      status: status || "PENDING",
+      memberId,
+      notes: notes || null,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Bill added successfully",
+      data: bill,
+    });
+  } catch (error) {
+    console.error("POST /api/bills error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to add bill",
+    });
+  }
+});
+
+/* =========================
+   INCOME
+========================= */
+
+app.get("/api/income", async (_req, res) => {
+  try {
+    const incomes = await db.orm.public.Income.all();
+
+    const data = await Promise.all(
+      incomes.map(async (income) => {
+        const member = income.memberId
+          ? await db.orm.public.Member
+              .where({ id: income.memberId })
+              .first()
+          : null;
+
+        return {
+          id: income.id,
+          source: income.source,
+          amount: income.amount,
+          incomeDate: income.incomeDate,
+          person: member?.name ?? null,
+          notes: income.notes,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("GET /api/income error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch income",
+    });
+  }
+});
+
+app.post("/api/income", async (req, res) => {
+  try {
+    const {
+      source,
+      amount,
+      incomeDate,
+      person,
+      notes,
+    } = req.body;
+
+    if (!source || !amount || !incomeDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Source, amount and date are required",
+      });
+    }
+
+    const memberId = await getMemberId(person);
+
+    const income = await db.orm.public.Income.create({
+      source,
+      amount: Number(amount),
+      incomeDate: toInstant(incomeDate),
+      memberId,
+      notes: notes || null,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Income added successfully",
+      data: income,
+    });
+  } catch (error) {
+    console.error("POST /api/income error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to add income",
+    });
+  }
+});
+
+/* =========================
+   LOANS
+========================= */
+
+app.get("/api/loans", async (_req, res) => {
+  try {
+    const loans = await db.orm.public.Loan.all();
+
+    const data = await Promise.all(
+      loans.map(async (loan) => {
+        const member = loan.memberId
+          ? await db.orm.public.Member
+              .where({ id: loan.memberId })
+              .first()
+          : null;
+
+        return {
+          id: loan.id,
+          name: loan.name,
+          principalAmount: loan.principalAmount,
+          interestRate: loan.interestRate,
+          tenureMonths: loan.tenureMonths,
+          emiAmount: loan.emiAmount,
+          startDate: loan.startDate,
+          endDate: loan.endDate,
+          person: member?.name ?? null,
+          status: loan.status,
+          notes: loan.notes,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("GET /api/loans error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch loans",
+    });
+  }
+});
+
+app.post("/api/loans", async (req, res) => {
+  try {
+    const {
+      name,
+      principalAmount,
+      interestRate,
+      tenureMonths,
+      emiAmount,
+      startDate,
+      endDate,
+      person,
+      status,
+      notes,
+    } = req.body;
+
+    if (
+      !name ||
+      !principalAmount ||
+      !tenureMonths ||
+      !startDate
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Required loan fields are missing",
+      });
+    }
+
+    const principal = Number(principalAmount);
+    const annualRate = Number(interestRate ?? 0);
+    const tenure = Number(tenureMonths);
+
+    let calculatedEMI = 0;
+
+    if (annualRate <= 0) {
+      calculatedEMI = principal / tenure;
+    } else {
+      const monthlyRate = annualRate / 12 / 100;
+      const factor = Math.pow(1 + monthlyRate, tenure);
+      calculatedEMI = principal * monthlyRate * factor / (factor - 1);
+    }
+
+    const memberId = await getMemberId(person);
+
+    const loan = await db.orm.public.Loan.create({
+      name,
+      principalAmount: principal,
+      interestRate: annualRate,
+      tenureMonths: tenure,
+      emiAmount: calculatedEMI,
+      startDate: toInstant(startDate),
+      endDate: endDate ? toInstant(endDate) : null,
+      memberId,
+      status: status || "ACTIVE",
+      notes: notes || null,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Loan added successfully",
+      data: loan,
+    });
+  } catch (error) {
+    console.error("POST /api/loans error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to add loan",
+    });
+  }
+});
+
+/* =========================
+   LOAN PAYMENTS
+========================= */
+
+app.delete("/api/loan-payments/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment id is required",
+      });
+    }
+
+    await db.orm.public.LoanPayment.where({ id }).delete();
+
+    res.json({
+      success: true,
+      message: "Loan payment deleted successfully",
+    });
+  } catch (error) {
+    console.error("DELETE /api/loan-payments error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete loan payment",
+    });
+  }
+});
+
+app.delete("/api/loans/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid loan id",
+      })
+    }
+
+    const payments = await db.orm.public.LoanPayment
+      .where({ loanId: id })
+      .all()
+
+    for (const payment of payments) {
+      await db.orm.public.LoanPayment.where({ id: Number(payment.id) }).delete()
+    }
+
+    await db.orm.public.Loan.where({ id }).delete()
+
+    res.json({
+      success: true,
+      message: "Loan deleted successfully",
+    })
+  } catch (error) {
+    console.error("DELETE /api/loans/:id error:", error)
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete loan",
+    })
+  }
+})
+
+app.get("/api/loan-payments", async (_req, res) => {
+  try {
+    const payments = await db.orm.public.LoanPayment.all();
+
+    res.json({
+      success: true,
+      data: payments,
+    });
+  } catch (error) {
+    console.error("GET /api/loan-payments error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch loan payments",
+    });
+  }
+});
+
+app.post("/api/loan-payments", async (req, res) => {
+  try {
+    const {
+      loanId,
+      amount,
+      paymentDate,
+      principalAmount,
+      interestAmount,
+      notes,
+    } = req.body;
+
+    if (!loanId || !amount || !paymentDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Loan, amount and payment date are required",
+      });
+    }
+
+    const payment = await db.orm.public.LoanPayment.create({
+      loanId: Number(loanId),
+      amount: Number(amount),
+      paymentDate: toInstant(paymentDate),
+      principalAmount: Number(principalAmount ?? 0),
+      interestAmount: Number(interestAmount ?? 0),
+      notes: notes || null,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Loan payment added successfully",
+      data: payment,
+    });
+  } catch (error) {
+    console.error("POST /api/loan-payments error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to add loan payment",
+    });
+  }
+});
+
+/* =========================
+   DASHBOARD
+========================= */
+
+app.get("/api/dashboard", async (_req, res) => {
+  try {
+    const [
+      transactions,
+      expenses,
+      bills,
+      incomes,
+      loans,
+      loanPayments,
+      itemMasters,
+      members,
+    ] = await Promise.all([
+      db.orm.public.ItemTransaction.all(),
+      db.orm.public.Expense.all(),
+      db.orm.public.Bill.all(),
+      db.orm.public.Income.all(),
+      db.orm.public.Loan.all(),
+      db.orm.public.LoanPayment.all(),
+      db.orm.public.ItemMaster.all(),
+      db.orm.public.Member.all(),
+    ]);
+
+    const now = new Date();
+
+    const year = now.getUTCFullYear();
+    const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+    const currentMonth = `${year}-${month}`;
+
+    const isCurrentMonth = (date: unknown) =>
+      String(date).startsWith(currentMonth);
+
+    const monthlyItemSpend = transactions
+      .filter((item) => isCurrentMonth(item.purchaseDate))
+      .reduce((sum, item) => sum + Number(item.price), 0);
+
+    const monthlyExpenses = expenses
+      .filter((expense) => isCurrentMonth(expense.expenseDate))
+      .reduce((sum, expense) => sum + Number(expense.amount), 0);
+
+    const monthlyBills = bills
+      .filter((bill) => isCurrentMonth(bill.dueDate))
+      .reduce((sum, bill) => sum + Number(bill.amount), 0);
+
+    const pendingBills = bills
+      .filter((bill) => bill.status !== "PAID")
+      .reduce((sum, bill) => sum + Number(bill.amount), 0);
+
+    const monthlyIncome = incomes
+      .filter((income) => isCurrentMonth(income.incomeDate))
+      .reduce((sum, income) => sum + Number(income.amount), 0);
+
+    const monthlyLoanPayments = loanPayments
+      .filter((payment) => isCurrentMonth(payment.paymentDate))
+      .reduce((sum, payment) => sum + Number(payment.amount), 0);
+
+    const activeLoans = loans.filter(
+      (loan) => loan.status === "ACTIVE"
+    );
+
+    const totalMonthlyOutflow =
+      monthlyItemSpend +
+      monthlyExpenses +
+      monthlyBills +
+      monthlyLoanPayments;
+
+    const recentActivity = [
+      ...transactions.map((item) => {
+        const itemMaster = itemMasters.find(
+          (master) => Number(master.id) === Number(item.itemId)
+        );
+
+        const member = members.find(
+          (person) => Number(person.id) === Number(item.memberId)
+        );
+
+        return {
+          type: "ITEM",
+          date: item.purchaseDate,
+          amount: Number(item.price),
+          id: item.id,
+          itemName: itemMaster?.name ?? "वस्तू",
+          memberName: member?.name ?? "",
+        };
+      }),
+
+      ...expenses.map((expense) => ({
+        type: "EXPENSE",
+        date: expense.expenseDate,
+        amount: Number(expense.amount),
+        id: expense.id,
+        itemName: expense.description,
+        memberName:
+          members.find(
+            (person) => Number(person.id) === Number(expense.memberId)
+          )?.name ?? "",
+      })),
+
+      ...bills.map((bill) => ({
+        type: "BILL",
+        date: bill.dueDate,
+        amount: Number(bill.amount),
+        id: bill.id,
+        itemName: bill.name,
+        memberName:
+          members.find(
+            (person) => Number(person.id) === Number(bill.memberId)
+          )?.name ?? "",
+      })),
+
+      ...incomes.map((income) => ({
+        type: "INCOME",
+        date: income.incomeDate,
+        amount: Number(income.amount),
+        id: income.id,
+        itemName: income.source,
+        memberName:
+          members.find(
+            (person) => Number(person.id) === Number(income.memberId)
+          )?.name ?? "",
+      })),
+
+      ...loanPayments.map((payment) => {
+        const loan = loans.find(
+          (item) => Number(item.id) === Number(payment.loanId)
+        );
+
+        return {
+          type: "LOAN_PAYMENT",
+          date: payment.paymentDate,
+          amount: Number(payment.amount),
+          id: payment.id,
+          itemName: loan?.name ?? "कर्ज EMI",
+          memberName:
+            members.find(
+              (person) => Number(person.id) === Number(loan?.memberId)
+            )?.name ?? "",
+        };
+      }),
+    ]
+      .sort(
+        (a, b) =>
+          new Date(String(b.date)).getTime() -
+          new Date(String(a.date)).getTime()
+      )
+      .slice(0, 10);
+
+    res.json({
+      success: true,
+      data: {
+        monthlyItemSpend,
+        monthlyExpenses,
+        monthlyBills,
+        pendingBills,
+        monthlyIncome,
+        monthlyLoanPayments,
+        totalMonthlyOutflow,
+        activeLoans: activeLoans.length,
+        totalLoans: loans.length,
+        recentActivity,
+      },
+    });
+  } catch (error) {
+    console.error("GET /api/dashboard error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch dashboard data",
+    });
+  }
+});
+
+/* =========================
+   SERVER
+========================= */
+
+app.listen(PORT, () => {
+  console.log(
+    `🚀 Ghar Hishob API running on http://localhost:${PORT}`
+  );
+});
+===== PRISMA =====
+// use prisma-8
+
+model Item {
+  id           Int      @id @default(autoincrement())
+  name         String
+  category     String?
+  quantity     Float    @default(1)
+  price        Float    @default(0)
+  purchaseDate DateTime
+  usedDate     DateTime?
+  person       String?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  @@map("items")
+}
+
+model Member {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  itemTransactions ItemTransaction[] @relation("ItemTransactionMember")
+  expenses         Expense[]         @relation("ExpenseMember")
+  bills            Bill[]            @relation("BillMember")
+  incomes          Income[]          @relation("IncomeMember")
+  loans            Loan[]            @relation("LoanMember")
+
+  @@map("members")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  type      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  itemMasters ItemMaster[] @relation("ItemMasterCategory")
+  expenses    Expense[]    @relation("ExpenseCategory")
+  bills       Bill[]       @relation("BillCategory")
+
+  @@unique([name, type])
+  @@map("categories")
+}
+
+model ItemMaster {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  categoryId Int?
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  category    Category?         @relation("ItemMasterCategory", fields: [categoryId], references: [id])
+  transactions ItemTransaction[] @relation("ItemMasterTransaction")
+
+  @@index([categoryId])
+  @@index([active])
+  @@map("item_master")
+}
+
+model ItemTransaction {
+  id           Int      @id @default(autoincrement())
+  itemId       Int
+  quantity     Float    @default(1)
+  price        Float    @default(0)
+  purchaseDate DateTime
+  usedDate     DateTime?
+  memberId     Int?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  item   ItemMaster @relation("ItemMasterTransaction", fields: [itemId], references: [id])
+  member Member?    @relation("ItemTransactionMember", fields: [memberId], references: [id])
+
+  @@index([itemId])
+  @@index([memberId])
+  @@index([purchaseDate])
+  @@map("item_transactions")
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  categoryId  Int?
+  amount      Float
+  expenseDate DateTime
+  memberId    Int?
+  description String
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  category Category? @relation("ExpenseCategory", fields: [categoryId], references: [id])
+  member   Member?   @relation("ExpenseMember", fields: [memberId], references: [id])
+
+  @@index([categoryId])
+  @@index([memberId])
+  @@index([expenseDate])
+  @@map("expenses")
+}
+
+model Bill {
+  id         Int      @id @default(autoincrement())
+  name       String
+  categoryId Int?
+  amount     Float
+  dueDate    DateTime
+  paidDate   DateTime?
+  status     String   @default("PENDING")
+  memberId   Int?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  category Category? @relation("BillCategory", fields: [categoryId], references: [id])
+  member   Member?   @relation("BillMember", fields: [memberId], references: [id])
+
+  @@index([categoryId])
+  @@index([memberId])
+  @@index([dueDate])
+  @@index([status])
+  @@map("bills")
+}
+
+model Income {
+  id         Int      @id @default(autoincrement())
+  source     String
+  amount     Float
+  incomeDate DateTime
+  memberId   Int?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  member Member? @relation("IncomeMember", fields: [memberId], references: [id])
+
+  @@index([memberId])
+  @@index([incomeDate])
+  @@map("income")
+}
+
+model Loan {
+  id              Int      @id @default(autoincrement())
+  name            String
+  principalAmount Float
+  interestRate    Float    @default(0)
+  tenureMonths    Int
+  emiAmount       Float
+  startDate       DateTime
+  endDate         DateTime?
+  memberId        Int?
+  status          String   @default("ACTIVE")
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  member   Member?       @relation("LoanMember", fields: [memberId], references: [id])
+  payments LoanPayment[] @relation("LoanPaymentLoan")
+
+  @@index([memberId])
+  @@index([status])
+  @@map("loans")
+}
+
+model LoanPayment {
+  id              Int      @id @default(autoincrement())
+  loanId          Int
+  amount          Float
+  paymentDate     DateTime
+  principalAmount Float    @default(0)
+  interestAmount  Float    @default(0)
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  loan Loan @relation("LoanPaymentLoan", fields: [loanId], references: [id])
+
+  @@index([loanId])
+  @@index([paymentDate])
+  @@map("loan_payments")
+}
+
+===== SERVER PACKAGE =====
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "Ghar Hishob API",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1",
+    "@prisma/client": "^7.10.0",
+    "@prisma/orm-postgres": "^8.0.0-rc.11",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "prisma": "^8.0.0-rc.15"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

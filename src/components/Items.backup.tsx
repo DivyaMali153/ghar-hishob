@@ -8,14 +8,6 @@ type MasterItem = {
   category: string
 }
 
-type StockItem = Item & {
-  openingStock?: number
-  addedStock?: number
-  usedStock?: number
-  remainingStock?: number
-  stockStatus?: string
-}
-
 const defaultMasterItems: MasterItem[] = [
   { name: 'Milk', category: 'किराणा' },
   { name: 'Sugar', category: 'किराणा' },
@@ -37,13 +29,15 @@ const defaultMasterItems: MasterItem[] = [
 function Items() {
   const [showForm, setShowForm] = useState(false)
 
-  const [itemList, setItemList] = useState<StockItem[]>([])
+  const [itemList, setItemList] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
+  // Master item list
   const [masterItems, setMasterItems] =
     useState<MasterItem[]>(defaultMasterItems)
 
+  // Item dropdown
   const [showItemDropdown, setShowItemDropdown] =
     useState(false)
 
@@ -56,6 +50,7 @@ function Items() {
   const [person, setPerson] = useState('')
   const [notes, setNotes] = useState('')
 
+  // Get items from API
   const loadItems = async () => {
     try {
       setLoading(true)
@@ -64,7 +59,7 @@ function Items() {
       const result = await response.json()
 
       if (result.success) {
-        setItemList(result.data || [])
+        setItemList(result.data)
       }
     } catch (error) {
       console.error('Items load error:', error)
@@ -80,10 +75,10 @@ function Items() {
     loadItems()
   }, [])
 
-  const formatDate = (
-    date: string | null | undefined
-  ) => {
+  // Show only date, remove T00:00:00Z
+  const formatDate = (date: string | null | undefined) => {
     if (!date) return ''
+
     return date.substring(0, 10)
   }
 
@@ -99,6 +94,7 @@ function Items() {
     setShowItemDropdown(false)
   }
 
+  // Search master items
   const filteredMasterItems = useMemo(() => {
     const search = itemName.trim().toLowerCase()
 
@@ -111,12 +107,14 @@ function Items() {
     )
   }, [itemName, masterItems])
 
+  // Select item from dropdown
   const selectItem = (item: MasterItem) => {
     setItemName(item.name)
     setCategory(item.category)
     setShowItemDropdown(false)
   }
 
+  // Add new master item
   const addNewMasterItem = () => {
     const newItemName = window.prompt(
       'नवीन वस्तूचे नाव लिहा'
@@ -130,8 +128,7 @@ function Items() {
 
     const alreadyExists = masterItems.some(
       (item) =>
-        item.name.toLowerCase() ===
-        cleanName.toLowerCase()
+        item.name.toLowerCase() === cleanName.toLowerCase()
     )
 
     if (alreadyExists) {
@@ -156,9 +153,8 @@ function Items() {
     setShowItemDropdown(false)
   }
 
-  const handleSubmit = async (
-    e: React.FormEvent
-  ) => {
+  // Save item through API
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     try {
@@ -191,11 +187,11 @@ function Items() {
         )
       }
 
-      /*
-       * Reload from API so calculated stock values
-       * are immediately reflected.
-       */
-      await loadItems()
+      // Newest item first
+      setItemList((previousItems) => [
+        result.data,
+        ...previousItems,
+      ])
 
       resetForm()
       setShowForm(false)
@@ -203,7 +199,6 @@ function Items() {
       alert('वस्तू successfully save झाली!')
     } catch (error) {
       console.error('Item save error:', error)
-
       alert(
         'वस्तू save झाली नाही. API check करा.'
       )
@@ -217,6 +212,7 @@ function Items() {
 
       {/* Header */}
       <div className="items-header">
+
         <div>
           <h2>📦 घरातील वस्तू</h2>
 
@@ -234,12 +230,14 @@ function Items() {
         >
           + वस्तू जोडा
         </button>
+
       </div>
 
       {/* Item List */}
       <div className="dashboard-section">
 
         <div className="section-title">
+
           <div>
             <h3>📋 वस्तूंची यादी</h3>
 
@@ -247,6 +245,7 @@ function Items() {
               एकूण {itemList.length} वस्तू
             </p>
           </div>
+
         </div>
 
         {loading ? (
@@ -274,173 +273,81 @@ function Items() {
 
           <div className="item-list">
 
-            {itemList.map((item) => {
+            {itemList.map((item) => (
 
-              const opening =
-                Number(item.openingStock ?? 0)
+              <div
+                className="item-row"
+                key={item.id}
+              >
 
-              const added =
-                Number(
-                  item.addedStock ??
-                  item.quantity ??
-                  0
-                )
+                <div className="item-main">
 
-              const used =
-                Number(item.usedStock ?? 0)
-
-              const remaining =
-                Math.max(
-                  0,
-                  Number(
-                    item.remainingStock ??
-                    opening + added - used
-                  )
-                )
-
-              const status =
-                item.stockStatus ??
-                (
-                  remaining <= 0
-                    ? 'Out of Stock'
-                    : remaining <= 5
-                      ? 'Low'
-                      : 'Available'
-                )
-
-              return (
-                <div
-                  className="item-row"
-                  key={item.id}
-                >
-
-                  {/* Item */}
-                  <div className="item-main">
-
-                    <div className="item-icon">
-                      📦
-                    </div>
-
-                    <div>
-                      <strong>
-                        {item.name}
-                      </strong>
-
-                      <span>
-                        {item.category}
-                      </span>
-                    </div>
-
+                  <div className="item-icon">
+                    📦
                   </div>
 
-                  {/* Opening Stock */}
-                  <div className="item-detail">
-                    <span>
-                      Opening Stock
-                    </span>
-
+                  <div>
                     <strong>
-                      {opening}
+                      {item.name}
                     </strong>
-                  </div>
 
-                  {/* Added Stock */}
-                  <div className="item-detail">
                     <span>
-                      Added Stock
+                      {item.category}
                     </span>
-
-                    <strong>
-                      {added}
-                    </strong>
-                  </div>
-
-                  {/* Used / Sold */}
-                  <div className="item-detail">
-                    <span>
-                      Used / Sold
-                    </span>
-
-                    <strong>
-                      {used}
-                    </strong>
-                  </div>
-
-                  {/* Remaining */}
-                  <div className="item-detail">
-                    <span>
-                      Remaining
-                    </span>
-
-                    <strong>
-                      {remaining}
-                    </strong>
-                  </div>
-
-                  {/* Rate */}
-                  <div className="item-detail">
-                    <span>
-                      किंमत
-                    </span>
-
-                    <strong>
-                      ₹ {item.price}
-                    </strong>
-                  </div>
-
-                  {/* Status */}
-                  <div className="item-detail">
-                    <span>
-                      Status
-                    </span>
-
-                    <strong>
-                      {status}
-                    </strong>
-                  </div>
-
-                  {/* Person */}
-                  <div className="item-detail">
-                    <span>
-                      नोंद केली
-                    </span>
-
-                    <strong>
-                      {item.person || '-'}
-                    </strong>
-                  </div>
-
-                  {/* Purchase Date */}
-                  <div className="item-detail">
-                    <span>
-                      आणल्याची तारीख
-                    </span>
-
-                    <strong>
-                      {formatDate(
-                        item.purchaseDate
-                      )}
-                    </strong>
-                  </div>
-
-                  {/* Used Date */}
-                  <div className="item-detail">
-                    <span>
-                      वापरायला काढले
-                    </span>
-
-                    <strong>
-                      {item.usedDate
-                        ? formatDate(item.usedDate)
-                        : 'अजून वापरले नाही'}
-                    </strong>
                   </div>
 
                 </div>
-              )
-            })}
+
+                <div className="item-detail">
+                  <span>Quantity</span>
+
+                  <strong>
+                    {item.quantity}
+                  </strong>
+                </div>
+
+                <div className="item-detail">
+                  <span>किंमत</span>
+
+                  <strong>
+                    ₹ {item.price}
+                  </strong>
+                </div>
+
+                <div className="item-detail">
+                  <span>नोंद केली</span>
+
+                  <strong>
+                    {item.person}
+                  </strong>
+                </div>
+
+                {/* Purchase Date */}
+                <div className="item-detail">
+                  <span>आणल्याची तारीख</span>
+
+                  <strong>
+                    {formatDate(item.purchaseDate)}
+                  </strong>
+                </div>
+
+                {/* Used Date */}
+                <div className="item-detail">
+                  <span>वापरायला काढले</span>
+
+                  <strong>
+                    {item.usedDate
+                      ? formatDate(item.usedDate)
+                      : 'अजून वापरले नाही'}
+                  </strong>
+                </div>
+
+              </div>
+
+            ))}
 
           </div>
+
         )}
 
       </div>
@@ -474,7 +381,7 @@ function Items() {
 
             <form onSubmit={handleSubmit}>
 
-              {/* Item Name */}
+              {/* Item Name Search Dropdown */}
               <div className="form-group item-name-wrapper">
 
                 <label>
@@ -492,18 +399,14 @@ function Items() {
                       setShowItemDropdown(true)
                     }
                     onChange={(e) => {
-
-                      setItemName(
-                        e.target.value
-                      )
+                      setItemName(e.target.value)
 
                       setShowItemDropdown(true)
 
                       const exactItem =
                         masterItems.find(
                           (item) =>
-                            item.name
-                              .toLowerCase() ===
+                            item.name.toLowerCase() ===
                             e.target.value
                               .trim()
                               .toLowerCase()
@@ -562,6 +465,7 @@ function Items() {
                             </span>
 
                           </button>
+
                         )
                       )
 
@@ -585,10 +489,11 @@ function Items() {
                         </button>
 
                       </div>
+
                     )}
 
+                    {/* Add new item */}
                     {filteredMasterItems.length > 0 && (
-
                       <button
                         type="button"
                         className="item-dropdown-add"
@@ -599,6 +504,7 @@ function Items() {
                     )}
 
                   </div>
+
                 )}
 
               </div>
@@ -820,6 +726,7 @@ function Items() {
           </div>
 
         </div>
+
       )}
 
     </div>
